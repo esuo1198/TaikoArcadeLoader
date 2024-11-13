@@ -463,7 +463,6 @@ Init () {
     bool unlockSongs      = true;
     bool fixLanguage      = false;
     bool chsPatch         = false;
-    bool instantResult    = false;
 
     bool useLayeredfs = false;
 
@@ -477,7 +476,6 @@ Init () {
             if (jpn39) {
                 fixLanguage      = readConfigBool (jpn39, "fix_language", fixLanguage);
                 chsPatch         = readConfigBool (jpn39, "chs_patch", chsPatch);
-                instantResult    = readConfigBool (jpn39, "instant_result", instantResult);
             }
         }
 
