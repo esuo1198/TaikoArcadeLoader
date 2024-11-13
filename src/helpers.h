@@ -140,4 +140,6 @@ int64_t readConfigInt (toml_table_t *table, const std::string &key, int64_t notF
 const std::string readConfigString (toml_table_t *table, const std::string &key, const std::string &notFoundValue);
 std::vector<int64_t> readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
 void printColour (int colour, const char *format, ...);
+std::wstring replace (const std::wstring orignStr, const std::wstring oldStr, const std::wstring newStr);
+std::string replace (const std::string orignStr, const std::string oldStr, const std::string newStr);
 std::vector<SafetyHookInline> directHooks = {};

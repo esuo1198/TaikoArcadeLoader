@@ -28,8 +28,6 @@ bool useLayeredFs        = false;
 bool emulateUsio         = true;
 bool emulateCardReader   = true;
 bool emulateQr           = true;
-std::string datatableKey = "0000000000000000000000000000000000000000000000000000000000000000";
-std::string fumenKey     = "0000000000000000000000000000000000000000000000000000000000000000";
 
 HWND hGameWnd;
 HOOK (i32, ShowMouse, PROC_ADDRESS ("user32.dll", "ShowCursor"), bool) { return originalShowMouse.call<i32> (true); }
@@ -180,12 +178,6 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
                 autoIme  = readConfigBool (keyboard, "auto_ime", autoIme);
                 jpLayout = readConfigBool (keyboard, "jp_layout", jpLayout);
             }
-            auto layeredFs = openConfigSection (config, "layeredfs");
-            if (layeredFs) {
-                useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
-                datatableKey = readConfigString (layeredFs, "datatable_key", datatableKey);
-                fumenKey     = readConfigString (layeredFs, "fumen_key", fumenKey);
-            }
         }
 
         if (version == "auto") {
@@ -260,7 +252,8 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         patches::Audio::Init ();
         patches::Dxgi::Init ();
         patches::AmAuth::Init ();
-        if (useLayeredFs) patches::LayeredFs::Init ();
+        patches::LayeredFs::Init ();
+        patches::TestMode::Init ();
     }
     return true;
 }

@@ -109,3 +109,39 @@ printColour (int colour, const char *format, ...) {
 
     va_end (args);
 }
+
+std::wstring
+replace (const std::wstring orignStr, const std::wstring oldStr, const std::wstring newStr) {
+    size_t pos = 0;
+    std::wstring tempStr = orignStr;
+    std::wstring::size_type newStrLen = newStr.length();
+    std::wstring::size_type oldStrLen = oldStr.length();
+    while(true)
+    {
+        pos = tempStr.find(oldStr, pos);
+        if (pos == std::wstring::npos) break;
+
+        tempStr.replace(pos, oldStrLen, newStr);        
+        pos += newStrLen;
+    }
+
+    return tempStr;
+}
+
+std::string
+replace (const std::string orignStr, const std::string oldStr, const std::string newStr) {
+    size_t pos = 0;
+    std::string tempStr = orignStr;
+    std::string::size_type newStrLen = newStr.length();
+    std::string::size_type oldStrLen = oldStr.length();
+    while(true)
+    {
+        pos = tempStr.find(oldStr, pos);
+        if (pos == std::string::npos) break;
+
+        tempStr.replace(pos, oldStrLen, newStr);        
+        pos += newStrLen;
+    }
+
+    return tempStr;
+}

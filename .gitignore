@@ -11,6 +11,7 @@ subprojects/safetyhook
 subprojects/zxing-cpp-2.2.1
 subprojects/stb
 subprojects/zlib
+subprojects/pugixml-1.14
 libtomcrypt-1.18.2
 dist.7z
 .vscode

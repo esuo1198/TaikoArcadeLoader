@@ -43,6 +43,11 @@ zlib_proj = subproject('zlib')
 zlib_dep = zlib_proj.get_variable('zlib_dep')
 libtomcrypt = subproject('libtomcrypt')
 libtomcrypt_dep = libtomcrypt.get_variable('tomcrypt_dep')
+opt_var = cmake.subproject_options()
+opt_var.set_override_option('cpp_std', 'c++23')
+opt_var.add_cmake_defines({'PUGIXML_WCHAR_MODE': true})
+pugixml = cmake.subproject('pugixml', options: opt_var)
+pugixml_dep = pugixml.get_variable('pugixml_static_dep')
 
 library(
 	'bnusio',
@@ -69,6 +74,7 @@ library(
 		zydis_dep,
 		zlib_dep,
 		libtomcrypt_dep,
+		pugixml_dep,
 	],
 	sources : [
 		'src/dllmain.cpp',
@@ -81,6 +87,7 @@ library(
 		'src/patches/audio.cpp',
 		'src/patches/qr.cpp',
 		'src/patches/layeredfs.cpp',
+		'src/patches/testmode.cpp',
 		'src/patches/versions/JPN00.cpp',
 		'src/patches/versions/JPN08.cpp',
 		'src/patches/versions/JPN39.cpp',
