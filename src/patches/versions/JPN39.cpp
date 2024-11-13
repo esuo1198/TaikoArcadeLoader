@@ -1,5 +1,5 @@
-#include "../patches.h"
 #include "helpers.h"
+#include "../patches.h"
 #include <iostream>
 #include <safetyhook.hpp>
 
@@ -30,23 +30,77 @@ FUNCTION_PTR (i32, luaL_loadstring, PROC_ADDRESS ("lua51.dll", "luaL_loadstring"
 #define LUA_MULTRET         (-1)
 #define luaL_dostring(L, s) (luaL_loadstring (L, s) || lua_pcall (L, 0, LUA_MULTRET, 0))
 
+FUNCTION_PTR (u64, RefTestModeMain, ASLR (0x1400337C0), u64);
+FUNCTION_PTR (u64, RefPlayDataManager, ASLR (0x140024AC0), u64);
+FUNCTION_PTR (i64, GetUserCount, ASLR (0x1403F1020), u64);
+
 i64
-lua_pushtrue (i64 a1) {
+lua_pushbool (i64 a1, bool val) {
     lua_settop (a1, 0);
-    lua_pushboolean (a1, 1);
+    lua_pushboolean (a1, val);
     return 1;
 }
 
-HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) { return lua_pushtrue (a1); }
-HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) { return lua_pushtrue (a1); }
-HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) { return lua_pushtrue (a1); }
-HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) { return lua_pushtrue (a1); }
-
-i64
-lua_freeze_timer (i64 a1) {
-    return lua_pushtrue (a1);
+u64 appAccessor = 0;
+u64 componentAccessor = 0;
+HOOK (i64, DeviceCheck, ASLR(0x140464FC0), i64 a1, i64 a2, i64 a3) {
+    TestMode::SetupAccessor (a3, RefTestModeMain);
+    componentAccessor = a2;
+    return originalDeviceCheck.call<i64> (a1, a2, a3);
 }
 
+int
+GetUserStatus () {
+    if (appAccessor) {
+        u64 playDataManager = RefPlayDataManager (appAccessor);
+        if (playDataManager) return GetUserCount(playDataManager);
+    }
+    return -1;
+}
+
+HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
+    int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
+    if (tournamentMode == 1) return originalAvailableMode_Collabo024.call<i64> (a1);
+    int status = TestMode::ReadTestModeValue (L"ModModeCollabo024");
+    if (status == 1 && GetUserStatus () == 1) {
+        return lua_pushbool (a1, true);
+    }
+    return originalAvailableMode_Collabo024.call<i64> (a1);
+}
+HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) {
+    int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
+    if (tournamentMode == 1) return originalAvailableMode_Collabo025.call<i64> (a1);
+    int status = TestMode::ReadTestModeValue (L"ModModeCollabo025");
+    if (status == 1 && GetUserStatus () == 1) {
+        return lua_pushbool (a1, true);
+    }
+    return originalAvailableMode_Collabo025.call<i64> (a1);
+}
+HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) {
+    int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
+    if (tournamentMode == 1) return originalAvailableMode_Collabo026.call<i64> (a1);
+    int status = TestMode::ReadTestModeValue (L"ModModeCollabo026");
+    if (status == 1 && GetUserStatus () == 1) {
+        return lua_pushbool (a1, true);
+    }
+    return originalAvailableMode_Collabo026.call<i64> (a1);
+}
+HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) {
+    int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
+    if (tournamentMode == 1) return originalAvailableMode_AprilFool001.call<i64> (a1);
+    int status = TestMode::ReadTestModeValue (L"ModModeAprilFool001");
+    if (status == 1) {
+        return lua_pushbool (a1, true);
+    }
+    return originalAvailableMode_AprilFool001.call<i64> (a1);
+}
+i64 __fastcall lua_freeze_timer (i64 a1) {
+    int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
+    if (tournamentMode == 1) return lua_pushbool (a1, true); 
+    int status = TestMode::ReadTestModeValue (L"ModFreezeTimer");
+    if (status == 1) return lua_pushbool (a1, true);
+    return lua_pushbool (a1, false);
+}
 MID_HOOK (FreezeTimer, ASLR (0x14019FF51), SafetyHookContext &ctx) {
     auto a1 = ctx.rdi;
     int v9  = (int)(ctx.rax + 1);
@@ -103,11 +157,15 @@ ExecuteSendResultData () {
 }
 
 bool sendFlag = false;
-#define SCENE_RESULT_HOOK(functionName, location)                 \
-    HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) { \
-        sendFlag = true;                                          \
-        original##functionName.call (a1, a2, a3);                 \
-        ExecuteSendResultData ();                                 \
+#define SCENE_RESULT_HOOK(functionName, location)                     \
+    HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) {     \
+        if (                                                          \
+            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && \
+            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4   \
+        ) { original##functionName.call (a1, a2, a3); return; }       \
+        sendFlag = true;                                              \
+        original##functionName.call (a1, a2, a3);                     \
+        ExecuteSendResultData ();                                     \
     }
 
 SCENE_RESULT_HOOK (SceneResultInitialize_Enso, ASLR (0x140411FD0));
@@ -116,12 +174,16 @@ SCENE_RESULT_HOOK (SceneResultInitialize_Collabo025, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_Collabo026, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_AprilFool, ASLR (0x140411FD0));
 
-#define SEND_RESULT_HOOK(functionName, location)  \
-    HOOK (void, functionName, location, i64 a1) { \
-        if (sendFlag) {                           \
-            sendFlag = false;                     \
-            original##functionName.call (a1);     \
-        }                                         \
+#define SEND_RESULT_HOOK(functionName, location)                      \
+    HOOK (void, functionName, location, i64 a1) {                     \
+        if (                                                          \
+            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && \
+            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4   \
+        ) { original##functionName.call (a1); return; }               \
+        if (sendFlag) {                                               \
+            sendFlag = false;                                         \
+            original##functionName.call (a1);                         \
+        }                                                             \
     }
 
 SEND_RESULT_HOOK (SendResultData_Enso, ASLR (0x1401817B0));
@@ -131,7 +193,11 @@ SEND_RESULT_HOOK (SendResultData_AprilFool, ASLR (0x140177800));
 
 #define CHANGE_RESULT_SIZE_HOOK(functionName, location, target)          \
     MID_HOOK (functionName, location, SafetyHookContext &ctx) {          \
-        i64 instance          = GetPlayDataManagerRef (*(i64 *)ctx.r12); \
+        if (                                                             \
+            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 &&    \
+            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4      \
+        ) { return; }                                                    \
+        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);    \
         u32 currentStageCount = *(u32 *)(instance + 8);                  \
         ctx.target &= 0xFFFFFFFF00000000;                                \
         ctx.target |= currentStageCount;                                 \
@@ -144,7 +210,11 @@ CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_AprilFool, ASLR (0x140176044), rax
 
 #define CHANGE_RESULT_INDEX_HOOK(functionName, location, target, offset, skip) \
     MID_HOOK (functionName, location, SafetyHookContext &ctx) {                \
-        i64 instance          = GetPlayDataManagerRef (*(i64 *)ctx.r12);       \
+        if (                                                                   \
+            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 &&          \
+            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4            \
+        ) { return; }                                                          \
+        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);          \
         u32 currentStageCount = *(u32 *)(instance + 8);                        \
         ctx.target &= 0xFFFFFFFF00000000;                                      \
         ctx.target |= currentStageCount - 1;                                   \
@@ -187,6 +257,10 @@ HOOK (i64, GetCabinetLanguage, ASLR (0x1401D1A60), i64, i64 a2) {
 MID_HOOK (ChangeLanguageType, ASLR (0x1400B2016), SafetyHookContext &ctx) {
     int *pFontType = (int *)ctx.rax;
     if (*pFontType == 4) *pFontType = 2;
+}
+
+MID_HOOK (CountLockedCrown, ASLR (0x1403F2A25), SafetyHookContext &ctx) {
+    ctx.r15 |= 1;
 }
 
 std::map<std::string, int> nus3bankMap;
@@ -328,6 +402,32 @@ HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
     return 1;
 }
 
+float soundRate = 1.0F;
+HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
+    soundRate = a1 <= 100 ? 1.0F : a1 / 100.0;
+    return originalSetMasterVolumeSpeaker.call<i32> (a1 > 100 ? 100 : a1);
+}
+
+HOOK (u64, NuscBusVolume, ASLR (0x1407B1C30), u64 a1, u64 a2, float a3) {
+    return originalNuscBusVolume.call<u64> (a1, a2, a3 * soundRate);
+}
+
+std::string* fontName = nullptr;
+HOOK (u8, SetupFontInfo, ASLR (0x14049D820), u64 a1, u64 a2, size_t a3, u64 a4) {
+    if (fontName != nullptr) delete fontName;
+    fontName = new std::string(((char*)a1) + 120);
+    return originalSetupFontInfo.call<u8> (a1, a2, a3, a4);
+}
+
+HOOK (u32, ReadFontInfoInt, ASLR (0x14049EAC0), u64 a1, u64 a2) {
+    std::string attribute((char*)a2);
+    u32 result = originalReadFontInfoInt.call<u32> (a1, a2);
+    if (fontName->starts_with("cn_") && attribute == "offsetV") {
+        result += 1;
+    }
+    return result;
+}
+
 const i32 datatableBufferSize = 1024 * 1024 * 12;
 safetyhook::Allocation datatableBuffer1;
 safetyhook::Allocation datatableBuffer2;
@@ -362,12 +462,7 @@ Init () {
     bool vsync            = false;
     bool unlockSongs      = true;
     bool fixLanguage      = false;
-    bool freezeTimer      = false;
     bool chsPatch         = false;
-    bool instantResult    = false;
-    bool modeCollabo025   = false;
-    bool modeCollabo026   = false;
-    bool modeAprilFool001 = false;
 
     bool useLayeredfs = false;
 
@@ -380,12 +475,7 @@ Init () {
             auto jpn39  = openConfigSection (patches, "jpn39");
             if (jpn39) {
                 fixLanguage      = readConfigBool (jpn39, "fix_language", fixLanguage);
-                freezeTimer      = readConfigBool (jpn39, "freeze_timer", freezeTimer);
                 chsPatch         = readConfigBool (jpn39, "chs_patch", chsPatch);
-                instantResult    = readConfigBool (jpn39, "instant_result", instantResult);
-                modeCollabo025   = readConfigBool (jpn39, "mode_collabo025", modeCollabo025);
-                modeCollabo026   = readConfigBool (jpn39, "mode_collabo026", modeCollabo026);
-                modeAprilFool001 = readConfigBool (jpn39, "mode_aprilfool001", modeAprilFool001);
             }
         }
 
@@ -403,11 +493,18 @@ Init () {
         if (layeredfs) useLayeredfs = readConfigBool (layeredfs, "enabled", useLayeredfs);
     }
 
+    // Hook to get AppAccessor and ComponentAccessor
+    INSTALL_HOOK (DeviceCheck);
+    INSTALL_HOOK (luaL_newstate);
+
     // Apply common config patch
     WRITE_MEMORY (ASLR (0x140494533), i32, xRes);
     WRITE_MEMORY (ASLR (0x14049453A), i32, yRes);
     if (!vsync) WRITE_MEMORY (ASLR (0x14064C7E9), u8, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x90);
-    if (unlockSongs) WRITE_MEMORY (ASLR (0x1403F45CF), u8, 0xB0, 0x01);
+    if (unlockSongs) {
+        WRITE_MEMORY (ASLR (0x1403F45CF), u8, 0xB0, 0x01);
+        INSTALL_MID_HOOK (CountLockedCrown);
+    }
 
     // Bypass errors
     WRITE_MEMORY (ASLR (0x140041A00), u8, 0xC3);
@@ -458,29 +555,61 @@ Init () {
     }
 
     // Freeze Timer
-    if (freezeTimer) INSTALL_MID_HOOK (FreezeTimer);
-
-    // Send result per song
-    if (instantResult) {
-        INSTALL_HOOK (luaL_newstate);
-        INSTALL_HOOK (SceneResultInitialize_Enso);
-        INSTALL_HOOK (SceneResultInitialize_AI);
-        INSTALL_HOOK (SceneResultInitialize_Collabo025);
-        INSTALL_HOOK (SceneResultInitialize_Collabo026);
-        INSTALL_HOOK (SceneResultInitialize_AprilFool);
-        INSTALL_HOOK (SendResultData_Enso);
-        INSTALL_HOOK (SendResultData_AI);
-        INSTALL_HOOK (SendResultData_Collabo025_026);
-        INSTALL_HOOK (SendResultData_AprilFool);
-        INSTALL_MID_HOOK (ChangeResultDataSize_Enso);
-        INSTALL_MID_HOOK (ChangeResultDataSize_AI);
-        INSTALL_MID_HOOK (ChangeResultDataSize_Collabo025_026);
-        INSTALL_MID_HOOK (ChangeResultDataSize_AprilFool);
-        INSTALL_MID_HOOK (ChangeResultDataIndex_Enso);
-        INSTALL_MID_HOOK (ChangeResultDataIndex_AI);
-        INSTALL_MID_HOOK (ChangeResultDataIndex_Collabo025_026);
-        INSTALL_MID_HOOK (ChangeResultDataIndex_AprilFool);
-    }
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＦＲＥＥＺＥ ＴＩＭＥＲ\" param-offset-x=\"35\" replace-text=\"0:ＯＦＦ, 1:ＯＮ\" group=\"Setting\" id=\"ModFreezeTimer\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() { INSTALL_MID_HOOK (FreezeTimer); }
+    );
+    // Mode Unlock
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＫＩＭＥＴＳＵ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo024\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() { INSTALL_HOOK (AvailableMode_Collabo024); }
+    );
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＯＮＥ ＰＩＥＣＥ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo025\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() { INSTALL_HOOK (AvailableMode_Collabo025); }
+    );
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＡＩ ＳＯＳＨＩＮＡ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo026\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() { INSTALL_HOOK (AvailableMode_Collabo026); }
+    );
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＡＯＨＡＲＵ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeAprilFool001\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() { INSTALL_HOOK (AvailableMode_AprilFool001); }
+    );
+    TestMode::RegisterItem(
+        L"<select-item label=\"ＩＮＳＴＡＮＴ ＲＥＳＵＬＴ\" param-offset-x=\"35\" replace-text=\"0:ＯＦＦ, 1:ＯＮ\" group=\"Setting\" id=\"ModInstantResult\" max=\"1\" min=\"0\" default=\"0\"/>",
+        [&]() {
+            INSTALL_HOOK (SceneResultInitialize_Enso);
+            INSTALL_HOOK (SceneResultInitialize_AI);
+            INSTALL_HOOK (SceneResultInitialize_Collabo025);
+            INSTALL_HOOK (SceneResultInitialize_Collabo026);
+            INSTALL_HOOK (SceneResultInitialize_AprilFool);
+            INSTALL_HOOK (SendResultData_Enso);
+            INSTALL_HOOK (SendResultData_AI);
+            INSTALL_HOOK (SendResultData_Collabo025_026);
+            INSTALL_HOOK (SendResultData_AprilFool);
+            INSTALL_MID_HOOK (ChangeResultDataSize_Enso);
+            INSTALL_MID_HOOK (ChangeResultDataSize_AI);
+            INSTALL_MID_HOOK (ChangeResultDataSize_Collabo025_026);
+            INSTALL_MID_HOOK (ChangeResultDataSize_AprilFool);
+            INSTALL_MID_HOOK (ChangeResultDataIndex_Enso);
+            INSTALL_MID_HOOK (ChangeResultDataIndex_AI);
+            INSTALL_MID_HOOK (ChangeResultDataIndex_Collabo025_026);
+            INSTALL_MID_HOOK (ChangeResultDataIndex_AprilFool);
+        }
+    );
+    // Unlimit Volume
+    TestMode::RegisterModify(
+        L"/root/menu[@id='SoundTestMenu']/layout[@type='Center']/select-item[@id='OutputLevelSpeakerItem']",
+        [&](pugi::xml_node &node) { TestMode::Append(node, L"label", L"*"); node.attribute(L"max").set_value(L"300"); node.attribute(L"delta").set_value(L"1"); },
+        [&]() { INSTALL_HOOK (SetMasterVolumeSpeaker); INSTALL_HOOK (NuscBusVolume); }
+    );
+    // Instant Result
+    // TestMode::RegisterModify(
+    //     L"/root/menu[@id='GameOptionsMenu']/layout[@type='Center']/select-item[@id='NumberOfStageItem']",
+    //     [&](pugi::xml_node &node) { TestMode::Append(node, L"label", L"*"); node.attribute(L"max").set_value(L"99"); },
+    //     [&](){}
+    // );
 
     // Use chs font/wordlist instead of cht
     if (chsPatch) {
@@ -498,8 +627,22 @@ Init () {
             WRITE_MEMORY (ASLR (0x140CD1AF8), char, "cn_30");
             WRITE_MEMORY (ASLR (0x140C946A0), char, "chineseSText");
             WRITE_MEMORY (ASLR (0x140C946B0), char, "chineseSFontType");
+            WRITE_MEMORY (ASLR (0x140CD1E40), wchar_t, L"加載中\0");
+            WRITE_MEMORY (ASLR (0x140CD1E28), wchar_t, L"加載中.\0");
+            WRITE_MEMORY (ASLR (0x140CD1E68), wchar_t, L"加載中..\0");
+            WRITE_MEMORY (ASLR (0x140CD1E50), wchar_t, L"加載中...\0");
             INSTALL_MID_HOOK (ChangeLanguageType);
+            INSTALL_HOOK (SetupFontInfo);
+            INSTALL_HOOK (ReadFontInfoInt);
         }
+
+        LayeredFs::RegisterBefore([=](const std::string originalFileName, const std::string currentFileName) -> std::string {
+            if (currentFileName.find ("\\lumen\\") == std::string::npos) return "";
+            std::string fileName = currentFileName;
+            fileName = replace(fileName, "\\lumen\\", "\\lumen_cn\\");
+            if (std::filesystem::exists (fileName)) return fileName;
+            else return currentFileName;
+        });
     }
 
     // Fix language
@@ -518,11 +661,6 @@ Init () {
         INSTALL_HOOK (PlaySoundEnso);
         INSTALL_HOOK (PlaySoundSpecial);
     }
-
-    // Mode unlock
-    if (modeCollabo025) INSTALL_HOOK (AvailableMode_Collabo025);
-    if (modeCollabo026) INSTALL_HOOK (AvailableMode_Collabo026);
-    if (modeAprilFool001) INSTALL_HOOK (AvailableMode_AprilFool001);
 
     // Fix normal song play after passing through silent song
     INSTALL_MID_HOOK (GenNus3bankId);

@@ -54,18 +54,9 @@ unlock_songs = true
   [patches.jpn39]
   # sync test mode language to attract etc
   fix_language = false
-  # stop timer count down
-  freeze_timer = false
   # use cn font and chineseS wordlist value
   chs_patch = false
-  # send result per song
-  instant_result = false
-  # enable one piece collab mode
-  mode_collabo025 = false
-  # enable ai soshina mode
-  mode_collabo026 = false
-  # enable aoharu no tatsujin mode
-  mode_aprilfool001 = false
+  # more options is now moved to testmode
 
 [emulation]
 # If usio emulation is disabled, you need to place bnusio_original.dll (unmodified bnusio.dll) in the executable folder.
@@ -135,6 +126,21 @@ datatable_key = ""
 fumen_key = ""
 ```
 
+## TestMode options (JPN39 only)
+
+TaikoArcadeLoader offers several patches to select in TestMode  
+
+The follow options are available in "MOD MANAGER" menu:
+- FREEZE TIMER (stop timer count down)
+- KIMETSU MODE (enable collabo024, will show a blank title)
+- ONE PIECE MODE (enable collabo025)
+- AI SOSHINA MODE (enable collabo026)
+- AOHARU MODE (enable aprilfool001)
+- INSTANT RESULT (send result per song)  
+
+Enhanced original option:
+- Louder volume (Speaker Volume is now up to 300%, **WARNING: May damage your speakers**)
+
 ## Building
 
 TaikoArcadeLoader can be a bit tricky to build if you've never done it before.  
@@ -147,8 +153,8 @@ pip3 install meson
 npm install n -g && n latest && npm install --global xpm@latest
 npx xpm init && npx xpm install @xpack-dev-tools/mingw-w64-gcc@latest
 
-# make sure to edit "path_to_tal" with the actual TaikoArcadeLoader folder path
-export PATH=/path_to_tal/xpacks/.bin:$PATH
+# make sure you entered TaikoArcadeLoader folder
+export PATH=`pwd`/xpacks/.bin:$PATH
 make setup
 ```
 

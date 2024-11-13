@@ -5,6 +5,9 @@ all:
 	@strip build/bnusio.dll
 
 setup:
+	@meson setup build --cross cross-mingw-64.txt
+
+clean-setup:
 	@meson setup --wipe build --cross cross-mingw-64.txt
 
 clean:

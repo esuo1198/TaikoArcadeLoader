@@ -2,12 +2,23 @@
 #include <tomcrypt.h>
 #include <zlib.h>
 
-extern std::string datatableKey;
-extern std::string fumenKey;
+bool useLayeredFs        = false;
+std::string datatableKey = "0000000000000000000000000000000000000000000000000000000000000000";
+std::string fumenKey     = "0000000000000000000000000000000000000000000000000000000000000000";
 
 #define CRCPOLY 0x82F63B78
 
 namespace patches::LayeredFs {
+class RegisteredHandler {
+public:
+    std::function<std::string(std::string, std::string)> handlerMethod;
+    RegisteredHandler (const std::function<std::string(std::string, std::string)> &handlerMethod) {
+        this->handlerMethod = handlerMethod;
+    }
+};
+
+std::vector<RegisteredHandler *> beforeHandlers = {};
+std::vector<RegisteredHandler *> afterHandlers = {};
 
 uint32_t
 CRC32C (uint32_t crc, const unsigned char *buf, size_t len) {
@@ -167,9 +178,9 @@ IsFumenEncrypted (const std::string &filename) {
     return buffer != expected_bytes;
 }
 
-HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
-      LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
-    std::filesystem::path path (lpFileName);
+std::string
+LayeredFsHandler (const std::string originalFileName, const std::string currentFileName) {
+    std::filesystem::path path (originalFileName.c_str());
     if (!path.is_absolute ()) path = std::filesystem::absolute (path);
     auto originalDataFolder       = std::filesystem::current_path ().parent_path ().parent_path () / "Data" / "x64";
     auto originalLayeredFsFolder  = std::filesystem::current_path ().parent_path ().parent_path () / "Data_mods" / "x64";
@@ -187,8 +198,7 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
         if (std::filesystem::exists (newPath)) { // If a file exists in the datamod folder
             if (IsFumenEncrypted (newPath)) {    // And if it's an encrypted fumen or a different type of file, use it.
                 std::cout << "Redirecting " << std::filesystem::relative (path).string () << std::endl;
-                return originalCreateFileAHook.call<HANDLE> (newPath.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes,
-                                                             dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+                return newPath;
             } else {                                      // Otherwise if it's an unencrypted fumen.
                 if (!std::filesystem::exists (encPath)) { // We check if we don't already have a cached file.
                     if (fumenKey.length () == 64) {
@@ -203,8 +213,7 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
                         encPath = path.string ();
                     }
                 } else std::cout << "Using cached file for " << std::filesystem::relative (newPath) << std::endl;
-                return originalCreateFileAHook.call<HANDLE> (encPath.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes,
-                                                             dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+                return encPath;
             }
         }
 
@@ -236,13 +245,45 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
             } else
                 std::cout << "Using cached file for " << std::filesystem::relative (json_path)
                           << std::endl; // Otherwise use the already encrypted file.
-            return originalCreateFileAHook.call<HANDLE> (encPath.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-                                                         dwFlagsAndAttributes, hTemplateFile);
+            return encPath;
         }
     }
 
-    return originalCreateFileAHook.call<HANDLE> (lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-                                                 dwFlagsAndAttributes, hTemplateFile);
+    return path.string();
+}
+
+HOOK (
+    HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), 
+    LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, 
+    DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile
+) {
+    // std::wcout << "CreateFileA: file " << lpFileName << std::endl;
+    std::string originalFileName = std::string(lpFileName);
+    std::string currentFileName = originalFileName;
+
+    if (!beforeHandlers.empty()) {
+        for (auto handler : beforeHandlers) {
+            std::string result = handler->handlerMethod(originalFileName, currentFileName);
+            if (result != "") currentFileName = result;
+        }
+    }
+
+    if (useLayeredFs) {
+        std::string result = LayeredFsHandler(originalFileName, currentFileName);
+        if (result != "") currentFileName = result;
+    } 
+
+    if (!afterHandlers.empty()) {
+        for (auto handler : afterHandlers) {
+            std::string result = handler->handlerMethod(originalFileName, currentFileName);
+            if (result != "") currentFileName = result;
+        }
+    }
+
+    return originalCreateFileAHook.call<HANDLE> (
+        currentFileName.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, 
+        dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile
+    );
 }
 
 // HOOK (HANDLE, CreateFileWHook, PROC_ADDRESS ("kernel32.dll", "CreateFileW"), LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
@@ -274,10 +315,34 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
 
 void
 Init () {
-    std::wcout << "Using LayeredFs!" << std::endl;
+    auto configPath = std::filesystem::current_path () / "config.toml";
+    std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
+    if (config_ptr) {
+        auto layeredFs = openConfigSection (config_ptr.get(), "layeredfs");
+        if (layeredFs) {
+            useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
+            datatableKey = readConfigString (layeredFs, "datatable_key", datatableKey);
+            fumenKey     = readConfigString (layeredFs, "fumen_key", fumenKey);
+        }
+    }
+
+    if (useLayeredFs) {
+        std::wcout << "Using LayeredFs!" << std::endl;
+    }
+    
     register_cipher (&aes_desc);
     INSTALL_HOOK (CreateFileAHook);
     // INSTALL_HOOK (CreateFileWHook);
+}
+
+void
+RegisterBefore (const std::function<std::string(const std::string, const std::string)> &fileHandler) {
+    beforeHandlers.push_back (new RegisteredHandler(fileHandler));
+}
+
+void
+RegisterAfter (const std::function<std::string(const std::string, const std::string)> &fileHandler) {
+    afterHandlers.push_back (new RegisteredHandler(fileHandler));
 }
 
 } // namespace patches::LayeredFs

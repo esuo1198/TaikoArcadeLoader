@@ -47,6 +47,7 @@ Keybindings P2_RIGHT_BLUE = {};
 
 bool testEnabled  = false;
 int coin_count    = 0;
+int service_count = 0;
 bool inited       = false;
 HWND windowHandle = nullptr;
 HKL currentLayout;
@@ -92,7 +93,6 @@ RETURN_FALSE (i64, bnusio_SetHopperLimit, u16 a1, i16 a2);
 RETURN_FALSE (i64, bnusio_SramRead, i32 a1, u8 a2, i32 a3, u16 a4);
 RETURN_FALSE (i64, bnusio_SramWrite, i32 a1, u8 a2, i32 a3, u16 a4);
 RETURN_FALSE (void *, bnusio_GetCoinError, i32 a1);
-RETURN_FALSE (void *, bnusio_GetService, i32 a1);
 RETURN_FALSE (void *, bnusio_GetServiceError, i32 a1);
 RETURN_FALSE (i64, bnusio_DecCoin, i32 a1, u16 a2);
 RETURN_FALSE (i64, bnusio_DecService, i32 a1, u16 a2);
@@ -183,7 +183,8 @@ bnusio_GetAnalogIn (u8 which) {
     }
 }
 
-u16 bnusio_GetCoin (i32 a1) { return coin_count; }
+u16 __fastcall bnusio_GetCoin (i32 a1) { return coin_count; }
+u16 __fastcall bnusio_GetService (i32 a1) { return service_count; }
 }
 
 FUNCTION_PTR (i64, bnusio_Open_Original, PROC_ADDRESS ("bnusio_original.dll", "bnusio_Open"));
@@ -417,6 +418,7 @@ Update () {
 
     UpdatePoll (windowHandle);
     if (IsButtonTapped (COIN_ADD) && !testEnabled) coin_count++;
+    if (IsButtonTapped (SERVICE) && !testEnabled) service_count++;
     if (IsButtonTapped (TEST)) testEnabled = !testEnabled;
     if (IsButtonTapped (EXIT)) ExitProcess (0);
     if (waitingForTouch) {

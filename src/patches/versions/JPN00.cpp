@@ -1,5 +1,5 @@
-#include "../patches.h"
 #include "helpers.h"
+#include "../patches.h"
 #include <safetyhook.hpp>
 
 extern u64 song_data_size;
