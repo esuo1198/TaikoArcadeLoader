@@ -19,7 +19,6 @@ unlock_songs = true
   [patches.jpn39]
   fix_language = false
   chs_patch = false
-  instant_result = false
 
 [emulation]
 usio = true
