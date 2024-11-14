@@ -249,7 +249,7 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
         }
     }
 
-    return path.string();
+    return "";
 }
 
 HOOK (
