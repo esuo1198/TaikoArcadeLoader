@@ -3,8 +3,8 @@
 #include <zlib.h>
 
 bool useLayeredFs        = false;
-std::string datatableKey = "0000000000000000000000000000000000000000000000000000000000000000";
-std::string fumenKey     = "0000000000000000000000000000000000000000000000000000000000000000";
+std::string datatableKey = "3530304242323633353537423431384139353134383346433246464231354534";
+std::string fumenKey     = "4434423946383537303842433443383030333843444132343339373531353830";
 
 #define CRCPOLY 0x82F63B78
 
@@ -319,11 +319,7 @@ Init () {
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
         auto layeredFs = openConfigSection (config_ptr.get(), "layeredfs");
-        if (layeredFs) {
-            useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
-            datatableKey = readConfigString (layeredFs, "datatable_key", datatableKey);
-            fumenKey     = readConfigString (layeredFs, "fumen_key", fumenKey);
-        }
+        if (layeredFs) useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
     }
     
     register_cipher (&aes_desc);

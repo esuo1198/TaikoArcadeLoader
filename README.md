@@ -83,10 +83,8 @@ jp_layout = false           # Use jp layout scan code (if using jp layout keyboa
 [layeredfs]
 enabled = false             # Replace assets from the game using a layered file system.
                             # | For example if you want to edit the wordlist, add your edited version like so:
-                            # | .\Data_mods\x64\datatable\wordlist.bin
-datatable_key = ""          # AES encryption keys needed to dynamically encrypt datatable files and fumens.
-fumen_key = ""              # | Keys need to be provided in an hexlified form. A missing or incorrect key will crash the game.
-                            # | Keys are not needed if you provide files that are already encrypted.
+                            # | .\Data_mods\x64\datatable\wordlist.json 
+                            # | You can provide both unencrypted and encrypted files. 
 
 [logging]
 log_level = "INFO"          # Log level, Can be either "NONE", "ERROR", "WARN", "INFO", "DEBUG" and "HOOKS"
