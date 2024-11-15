@@ -239,6 +239,8 @@ Update () {
 
 void
 Init () {
+    LogMessage(__FILE__, __LINE__, "Init Qr patches", LOG_LEVEL_DEBUG);
+    
     if (!emulateQr) {
         std::cout << "[Init] QR emulation disabled" << std::endl;
         return;

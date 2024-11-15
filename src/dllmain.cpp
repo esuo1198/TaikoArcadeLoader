@@ -3,6 +3,7 @@
 #include "helpers.h"
 #include "patches/patches.h"
 #include "poll.h"
+#include "logger.h"
 
 GameVersion gameVersion = GameVersion::UNKNOWN;
 std::vector<HMODULE> plugins;
@@ -28,6 +29,9 @@ bool useLayeredFs        = false;
 bool emulateUsio         = true;
 bool emulateCardReader   = true;
 bool emulateQr           = true;
+
+std::string logLevelStr  = "INFO";
+bool logToFile           = true;
 
 HWND hGameWnd;
 HOOK (i32, ShowMouse, PROC_ADDRESS ("user32.dll", "ShowCursor"), bool) { return originalShowMouse.call<i32> (true); }
@@ -120,6 +124,7 @@ GetGameVersion () {
 
 void
 CreateCard () {
+    LogMessage(__FILE__, __LINE__, "Creating card.ini", LOG_LEVEL_INFO);
     const char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     char buf[64]                   = {0};
     srand (time (nullptr));
@@ -139,6 +144,10 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         // This is bad, dont do this
         // I/O in DllMain can easily cause a deadlock
+
+        //Init logger for loading config
+        InitializeLogger(GetLogLevel(logLevelStr), logToFile);
+        LogMessage(__FILE__, __LINE__, "Loading config...", LOG_LEVEL_INFO);
 
         std::string version = "auto";
         auto configPath     = std::filesystem::current_path () / "config.toml";
@@ -178,7 +187,16 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
                 autoIme  = readConfigBool (keyboard, "auto_ime", autoIme);
                 jpLayout = readConfigBool (keyboard, "jp_layout", jpLayout);
             }
+            auto logging = openConfigSection (config, "logging");
+            if (logging) {
+                logLevelStr = readConfigString (logging, "log_level", logLevelStr);
+                logToFile = readConfigBool (logging, "log_to_file", logToFile);
+            }
         }
+
+        //Update the logger with the level read from config file.
+        InitializeLogger(GetLogLevel(logLevelStr), logToFile);
+        LogMessage(__FILE__, __LINE__, "Application started.", LOG_LEVEL_INFO);
 
         if (version == "auto") {
             GetGameVersion ();
@@ -191,9 +209,14 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         } else if (version == "CHN00") {
             gameVersion = GameVersion::CHN00;
         } else {
+            LogMessage(__FILE__, __LINE__, "GameVersion is UNKNOWN!", LOG_LEVEL_ERROR);
             MessageBoxA (nullptr, "Unknown patch version", nullptr, MB_OK);
             ExitProcess (0);
         }
+        char logMessage[32];
+        snprintf(logMessage, sizeof(logMessage), "GameVersion is %s", GameVersionToString(gameVersion));
+        LogMessage(__FILE__, __LINE__, logMessage, LOG_LEVEL_DEBUG);
+
 
         auto pluginPath = std::filesystem::current_path () / "plugins";
 
@@ -203,11 +226,14 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
                     auto name       = entry.path ().wstring ();
                     HMODULE hModule = LoadLibraryW (name.c_str ());
                     if (!hModule) {
-                        wchar_t buf[128];
-                        wsprintfW (buf, L"Failed to load plugin %ls", name.c_str ());
-                        MessageBoxW (0, buf, name.c_str (), MB_ICONERROR);
+                        auto pluginNameW = entry.path().filename().wstring(); // Extract plugin filename
+                        std::string pluginName(pluginNameW.begin(), pluginNameW.end()); // Convert to string
+                        LogMessage(__FILE__, __LINE__, ("Failed to load plugin " + pluginName).c_str(), LOG_LEVEL_ERROR);
                     } else {
                         plugins.push_back (hModule);
+                        auto pluginNameW = entry.path().filename().wstring(); // Extract plugin filename
+                        std::string pluginName(pluginNameW.begin(), pluginNameW.end()); // Convert to string
+                        LogMessage(__FILE__, __LINE__, ("Loaded plugin " + pluginName).c_str(), LOG_LEVEL_INFO);
                     }
                 }
             }
@@ -219,6 +245,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         GetPrivateProfileStringA ("card", "accessCode2", accessCode2, accessCode2, 21, ".\\card.ini");
         GetPrivateProfileStringA ("card", "chipId2", chipId2, chipId2, 33, ".\\card.ini");
 
+        
         INSTALL_HOOK (ShowMouse);
         INSTALL_HOOK (ExitWindows);
         INSTALL_HOOK (CreateWindow);

@@ -7,23 +7,29 @@ game_ver = "00.00"
 country_code = "JPN"
 
 [patches]
-version = "auto"
+version = "auto"            # Patch version
+                            # | - auto: hash detection (you need to use the original exe otherwise it will not load).
+                            # | - JPN00: For use with Taiko JPN 00.18
+                            # | - JPN08: For use with Taiko JPN 08.18
+                            # | - JPN39: For use with Taiko JPN 39.06
+                            # | - CHN00: For use with Taiko CHN 00.32
 unlock_songs = true
 
-  [patches.chn00]
-  fix_language = false
-  demo_movie = true
-  mode_collabo025 = false
-  mode_collabo026 = false
+[patches.chn00]             # These patches are only available for version CHN00
+fix_language = false        # Sync test mode language to attract etc
+demo_movie = true           # Show demo movie
+mode_collabo025 = false     # Enable one piece collab mode
+mode_collabo026 = false     # Enable ai soshina mode
 
-  [patches.jpn39]
-  fix_language = false
-  chs_patch = false
+[patches.jpn39]             # These patches are only available for version JPN39
+fix_language = false        # Sync test mode language to attract etc
+chs_patch = false           # Use Chinese font and Simplified Chinese values from the wordlist
+                            # More options are available in the ModManager, in the TestMode menu (Default key is F1)
 
 [emulation]
-usio = true
-card_reader = true
-qr = true
+usio = true                 # Disable this if you want to use an original Namco USIO board. you need to place bnusio_original.dll (unmodified bnusio.dll) in the executable folder.
+card_reader = true          # Disable this if you want to use an original Namco card reader
+qr = true                   # Disable this if you want to use an original Namco QR code scanner
 
 [graphics]
 res = { x = 1920, y = 1080 }
@@ -32,29 +38,40 @@ vsync = false
 fpslimit = 120
 
 [audio]
-wasapi_shared = true
-asio = false
-asio_driver = ""
+wasapi_shared = true        # Wasapi shared mode, allows you to have multiple audio sources at once at a cost of having higher latency.
+asio = false                # Use asio audio mode
+asio_driver = "ASIO4ALL v2" # Asio driver name
+                            # | If you're not using asio4all, open up regedit then navigate to HKEY_LOCAL_MACHINE\SOFTWARE\ASIO for your driver's name.
+                            # | It is case sensitive.
 
 [qr]
-image_path = ""
+image_path = ""             # Path to the image of the QR Code you want to use
 
-  [qr.data]
-  serial = ""
-  type = 0
-  song_no = []
-
-[drum]
-wait_period = 4
+[qr.data]                   # QR data used for other events (ex. gaiden, custom folder)
+serial = ""                 # QR serial
+type = 0                    # QR type
+                            # | 0: default (serial only)
+                            # | 5: custom folder
+song_no = []                # Song noes used for custom folder
 
 [controller]
-analog_input = false
+wait_period = 4             # Input interval (if using taiko drum controller, should be set to 0)
+analog_input = false        # Use analog input (you need a compatible controller, this allows playing small and big notes like on arcade cabinets)
 
 [keyboard]
-auto_ime = false
-jp_layout = false
+auto_ime = false            # Automatically change to english ime mode upon game startup
+jp_layout = false           # Use jp layout scan code (if using jp layout keyboard, must be set to true)
 
 [layeredfs]
-enabled = false
-datatable_key = ""
-fumen_key = ""
+enabled = false             # Replace assets from the game using a layered file system.
+                            # | For example if you want to edit the wordlist, add your edited version like so:
+                            # | .\Data_mods\x64\datatable\wordlist.bin
+datatable_key = ""          # AES encryption keys needed to dynamically encrypt datatable files and fumens.
+fumen_key = ""              # | Keys need to be provided in an hexlified form. A missing or incorrect key will crash the game.
+                            # | Keys are not needed if you provide files that are already encrypted.
+
+[logging]
+log_level = "INFO"          # Log level, Can be either "NONE", "ERROR", "WARN", "INFO", "DEBUG" and "HOOKS"
+                            # | Keep this as low as possible (Info is usually more than enough) as more logging will slow down your game
+log_to_file = false         # Log to file, set this to true to save the logs from your last session to TaikoArcadeLoader.log
+                            # |Again, if you do not have a use for this (debugging mods or whatnot), turn it off.

@@ -14,13 +14,13 @@ toml_myfree (void *p) {
 toml_table_t *
 openConfig (std::filesystem::path path) {
     if (!std::filesystem::exists (path) || !path.has_filename ()) {
-        printWarning ("%s (%s): file does not exist\n", __func__, path.string ().c_str ());
+        LogMessage(__FILE__, __LINE__, (std::string(path.string()) + ": file does not exist").c_str(), LOG_LEVEL_WARN);
         return 0;
     }
 
     std::ifstream stream (path);
     if (!stream.is_open ()) {
-        printWarning ("%s (%s): could not open\n", __func__, path.string ().c_str ());
+        LogMessage(__FILE__, __LINE__, ("Could not open "+ std::string(path.string())).c_str(), LOG_LEVEL_WARN);
         return 0;
     }
 
@@ -37,7 +37,7 @@ openConfig (std::filesystem::path path) {
     free (buf);
 
     if (!config) {
-        printWarning ("%s (%s): %s\n", __func__, path.string ().c_str (), errorbuf);
+        LogMessage(__FILE__, __LINE__, (path.string() + ": " + errorbuf).c_str(), LOG_LEVEL_WARN);
         return 0;
     }
 
@@ -48,7 +48,7 @@ toml_table_t *
 openConfigSection (toml_table_t *config, const std::string &sectionName) {
     toml_table_t *section = toml_table_in (config, sectionName.c_str ());
     if (!section) {
-        printWarning ("%s (%s): cannot find section\n", __func__, sectionName.c_str ());
+        LogMessage(__FILE__, __LINE__, ("Cannot find section " + sectionName).c_str (), LOG_LEVEL_WARN);
         return 0;
     }
 
@@ -58,33 +58,43 @@ openConfigSection (toml_table_t *config, const std::string &sectionName) {
 bool
 readConfigBool (toml_table_t *table, const std::string &key, bool notFoundValue) {
     toml_datum_t data = toml_bool_in (table, key.c_str ());
-    if (!data.ok) return notFoundValue;
-
+    if (!data.ok) {
+        LogMessage(__FILE__, __LINE__, ("Could not find Boolean named "+ key).c_str(), LOG_LEVEL_WARN);
+        return notFoundValue;
+    }
     return (bool)data.u.b;
 }
 
 int64_t
 readConfigInt (toml_table_t *table, const std::string &key, int64_t notFoundValue) {
     toml_datum_t data = toml_int_in (table, key.c_str ());
-    if (!data.ok) return notFoundValue;
-
+    if (!data.ok) {
+        LogMessage(__FILE__, __LINE__, ("Could not find Int named "+ key).c_str(), LOG_LEVEL_WARN);
+        return notFoundValue;
+    }
     return data.u.i;
 }
 
 const std::string
 readConfigString (toml_table_t *table, const std::string &key, const std::string &notFoundValue) {
     toml_datum_t data = toml_string_in (table, key.c_str ());
-    if (!data.ok) return notFoundValue;
+    if (!data.ok) 
+    {
+        LogMessage(__FILE__, __LINE__, ("Could not find String named "+ key).c_str(), LOG_LEVEL_WARN);
+        return notFoundValue;
+    }
     std::string str = data.u.s;
     toml_myfree (data.u.s);
-
     return str;
 }
 
 std::vector<int64_t>
 readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue) {
     toml_array_t *array = toml_array_in (table, key.c_str ());
-    if (!array) return notFoundValue;
+    if (!array) {
+        LogMessage(__FILE__, __LINE__, ("Could not find int Array named "+ key).c_str(), LOG_LEVEL_WARN);
+        return notFoundValue;
+    }
 
     std::vector<int64_t> datas;
     for (int i = 0;; i++) {
@@ -94,20 +104,6 @@ readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int
     }
 
     return datas;
-}
-
-void
-printColour (int colour, const char *format, ...) {
-    va_list args;
-    va_start (args, format);
-
-    if (consoleHandle == 0) consoleHandle = GetStdHandle (STD_OUTPUT_HANDLE);
-
-    SetConsoleTextAttribute (consoleHandle, colour);
-    vprintf (format, args);
-    SetConsoleTextAttribute (consoleHandle, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
-
-    va_end (args);
 }
 
 std::wstring

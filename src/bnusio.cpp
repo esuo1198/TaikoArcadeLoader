@@ -278,12 +278,11 @@ Init () {
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
         toml_table_t *config = config_ptr.get ();
-        auto drum            = openConfigSection (config, "drum");
-        if (drum) drumWaitPeriod = readConfigInt (drum, "wait_period", drumWaitPeriod);
         auto controller = openConfigSection (config, "controller");
         if (controller) {
+            drumWaitPeriod = readConfigInt (controller, "wait_period", drumWaitPeriod);
             analogInput = readConfigBool (controller, "analog_input", analogInput);
-            if (analogInput) printf ("Using analog input mode. All the keyboard drum inputs have been disabled.\n");
+            if (analogInput) LogMessage(__FILE__, __LINE__, "Using analog input mode. All the keyboard drum inputs have been disabled.", LOG_LEVEL_WARN);
         }
     }
 
@@ -317,7 +316,7 @@ Init () {
 
     if (!emulateUsio && !std::filesystem::exists (std::filesystem::current_path () / "bnusio_original.dll")) {
         emulateUsio = true;
-        std::cerr << "[Init] bnusio_original.dll not found! usio emulation enabled" << std::endl;
+        LogMessage(__FILE__, __LINE__, "bnusio_original.dll not found! usio emulation enabled", LOG_LEVEL_ERROR);
     }
 
     if (!emulateUsio) {
@@ -367,7 +366,7 @@ Init () {
         INSTALL_HOOK_DIRECT (bnusio_DecService, bnusio_DecService_Original);
         INSTALL_HOOK_DIRECT (bnusio_ResetCoin, bnusio_ResetCoin_Original);
 
-        std::cout << "[Init] USIO emulation disabled" << std::endl;
+        LogMessage(__FILE__, __LINE__, "USIO emulation disabled", LOG_LEVEL_INFO);
     }
 
     if (emulateCardReader) {
@@ -393,7 +392,7 @@ Init () {
         INSTALL_HOOK (bngrw_Attach);
         INSTALL_HOOK (bngrw_DevReset);
     } else {
-        std::cout << "[Init] Card reader emulation disabled" << std::endl;
+        LogMessage(__FILE__, __LINE__, "Card reader emulation disabled", LOG_LEVEL_INFO);
     }
 }
 
@@ -486,5 +485,7 @@ Close () {
         FARPROC exitEvent = GetProcAddress (plugin, "Exit");
         if (exitEvent) ((event *)exitEvent) ();
     }
+
+    CleanupLogger();
 }
 } // namespace bnusio

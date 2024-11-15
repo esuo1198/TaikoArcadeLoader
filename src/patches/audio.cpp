@@ -39,6 +39,8 @@ HOOK_DYNAMIC (bool, LoadASIODriver, void *a1, const char *a2) {
 
 void
 Init () {
+    LogMessage(__FILE__, __LINE__, "Init Audio patches", LOG_LEVEL_DEBUG);
+
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {

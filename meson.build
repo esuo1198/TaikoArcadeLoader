@@ -79,6 +79,7 @@ library(
 	sources : [
 		'src/dllmain.cpp',
 		'src/helpers.cpp',
+		'src/logger.cpp',
 		'src/poll.cpp',
 		'src/bnusio.cpp',
 		'src/patches/amauth.cpp',

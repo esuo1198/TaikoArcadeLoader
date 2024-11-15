@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <toml.h>
+#include "constants.h"
+#include "logger.h"
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -37,7 +39,7 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 #define HOOK(returnType, functionName, location, ...) \
     SafetyHookInline original##functionName{};        \
     void *where##functionName = (void *)location;     \
-    returnType implOf##functionName (__VA_ARGS__)
+    returnType implOf##functionName (__VA_ARGS__)     \
 
 #define HOOK_DYNAMIC(returnType, functionName, ...) \
     SafetyHookInline original##functionName{};      \
@@ -59,8 +61,11 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     void *where##functionName = NULL;       \
     void implOf##functionName (SafetyHookContext &ctx)
 
-#define INSTALL_HOOK(functionName) \
-    { original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName); }
+#define INSTALL_HOOK(functionName)                                                                                      \
+    {                                                                                                                   \
+        LogMessage(__FILE__, __LINE__, (std::string("Installing hook for ") + #functionName).c_str(), LOG_LEVEL_DEBUG); \
+        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName);                 \
+    }
 
 #define INSTALL_HOOK_DYNAMIC(functionName, location) \
     {                                                \
@@ -68,8 +73,11 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (functionName);                 \
     }
 
-#define INSTALL_HOOK_DIRECT(location, locationOfHook) \
-    { directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook)); }
+#define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                                      \
+    {                                                                                                                      \
+        LogMessage(__FILE__, __LINE__, (std::string("Installing direct hook for ") + #location).c_str(), LOG_LEVEL_DEBUG); \
+        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));                      \
+    }
 
 #define INSTALL_VTABLE_HOOK(className, object, functionName, functionIndex)                     \
     {                                                                                           \
@@ -77,8 +85,11 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (className##functionName);                                                 \
     }
 
-#define INSTALL_MID_HOOK(functionName) \
-    { midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName); }
+#define INSTALL_MID_HOOK(functionName)                                                                                      \
+    {                                                                                                                       \
+        LogMessage(__FILE__, __LINE__, (std::string("Installing mid hook for ") + #functionName).c_str(), LOG_LEVEL_DEBUG); \
+        midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);                         \
+    }
 
 #define INSTALL_MID_HOOK_DYNAMIC(functionName, location) \
     {                                                    \
@@ -124,13 +135,6 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     }
 
 #define COUNTOFARR(arr) sizeof (arr) / sizeof (arr[0])
-
-#define INFO_COLOUR               FOREGROUND_GREEN
-#define WARNING_COLOUR            (FOREGROUND_RED | FOREGROUND_GREEN)
-#define ERROR_COLOUR              FOREGROUND_RED
-#define printInfo(format, ...)    printColour (INFO_COLOUR, format, __VA_ARGS__)
-#define printWarning(format, ...) printColour (WARNING_COLOUR, format, __VA_ARGS__)
-#define printError(format, ...)   printColour (ERROR_COLOUR, format, __VA_ARGS__)
 #define round(num)                ((num > 0) ? (int)(num + 0.5) : (int)(num - 0.5))
 
 toml_table_t *openConfig (std::filesystem::path path);
@@ -139,7 +143,21 @@ bool readConfigBool (toml_table_t *table, const std::string &key, bool notFoundV
 int64_t readConfigInt (toml_table_t *table, const std::string &key, int64_t notFoundValue);
 const std::string readConfigString (toml_table_t *table, const std::string &key, const std::string &notFoundValue);
 std::vector<int64_t> readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
-void printColour (int colour, const char *format, ...);
 std::wstring replace (const std::wstring orignStr, const std::wstring oldStr, const std::wstring newStr);
 std::string replace (const std::string orignStr, const std::string oldStr, const std::string newStr);
 std::vector<SafetyHookInline> directHooks = {};
+
+const char* GameVersionToString(GameVersion version) {
+    switch (version) {
+        case GameVersion::JPN00:
+            return "JPN00";
+        case GameVersion::JPN08:
+            return "JPN08";
+        case GameVersion::JPN39:
+            return "JPN39";
+        case GameVersion::CHN00:
+            return "CHN00";
+        default:
+            return "UNKNOWN";
+    }
+}
