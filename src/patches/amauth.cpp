@@ -290,38 +290,19 @@ public:
         return this->refCount;
     }
 
-    virtual int64_t Unk3 (uint32_t a1) {
-        // printf ("Unk3 called\n");
-        return 1;
-    }
+    virtual int64_t Unk3 (uint32_t a1) { return 1; }
 
-    virtual int64_t Unk4 () {
-        // printf ("Unk4 called\n");
-        return 1;
-    }
+    virtual int64_t Unk4 () { return 1; }
 
-    virtual int32_t Unk5 () {
-        // printf ("Unk5 called\n");
-        return 0;
-    }
+    virtual int32_t Unk5 () { return 0; }
 
-    virtual int64_t Unk6 () {
-        // printf ("Unk6 called\n");
-        return 1;
-    }
+    virtual int64_t Unk6 () { return 1; }
 
-    virtual int32_t Unk7 () {
-        // printf ("Unk7 called\n");
-        return 0;
-    }
+    virtual int32_t Unk7 () { return 0; }
 
-    virtual int32_t Unk8 () {
-        // printf ("Unk8 called\n");
-        return 0;
-    }
+    virtual int32_t Unk8 () { return 0; }
 
     virtual int32_t IAuth_GetUpdaterState (amcus_state_t *arr) {
-        // printf("IAuth_GetUpdaterState called\n");
         memset (arr, 0, sizeof (*arr));
         // Convert gameVerNum from string to double
         double ver_d = std::stod (gameVerNum.c_str ());
@@ -378,7 +359,6 @@ public:
     }
 
     virtual int32_t IAuth_GetCabinetConfig (amcus_network_state_t *state) {
-        // printf("IAuth_GetCabinetConfig called\n");
         memset (state, 0, sizeof (*state));
         strcpy_s (state->mode, "STANDALONE");
         strcpy_s (state->pcbid, "ABLN1080001");
@@ -400,7 +380,6 @@ public:
     }
 
     virtual int32_t IAuth_GetVersionInfo (amcus_version_info_t *version) {
-        // printf("IAuth_GetVersionInfo called\n");
         memset (version, 0, sizeof (*version));
         strcpy_s (version->game_rev, "1");
         strcpy_s (version->auth_type, "ALL.NET");
@@ -414,18 +393,11 @@ public:
         return 0;
     }
 
-    virtual int32_t Unk12 () {
-        // printf ("Unk12 called\n");
-        return 1;
-    }
+    virtual int32_t Unk12 () { return 1; }
 
-    virtual int32_t Unk13 () {
-        // printf ("Unk13 called\n");
-        return 1;
-    }
+    virtual int32_t Unk13 () { return 1; }
 
     virtual int32_t IAuth_GetAuthServerResp (amcus_auth_server_resp_t *resp) {
-        // printf("IAuth_GetAuthServerResp called\n");
         memset (resp, 0, sizeof (*resp));
         strcpy_s (resp->uri, fullAddress);
         strcpy_s (resp->host, fullAddress);
@@ -447,24 +419,13 @@ public:
         return 0;
     }
 
-    virtual int32_t Unk15 () {
-        // printf ("Unk15 called\n");
-        return 0;
-    }
+    virtual int32_t Unk15 () { return 0; }
 
-    virtual int32_t Unk16 () {
-        // printf ("Unk16 called\n");
-        return 0;
-    }
+    virtual int32_t Unk16 () { return 0; }
 
-    virtual int32_t Unk17 () {
-        // printf ("Unk17 called\n");
-        return 0;
-    }
+    virtual int32_t Unk17 () { return 0; }
 
     virtual int32_t IAuth_GetMuchaAuthResponse (mucha_boardauth_resp_t *arr) {
-        // printf("IAuth_GetMuchaAuthResponse called\n");
-
         memset (arr, 0, sizeof (*arr));
         strcpy_s (arr->shop_name, sizeof (arr->shop_name), shopId.c_str ());
         strcpy_s (arr->shop_name_en, sizeof (arr->shop_name_en), shopId.c_str ());
@@ -500,80 +461,38 @@ public:
     }
 
     virtual int32_t Unk19 (uint8_t *a1) {
-        // printf("Unk19 called\n");
         memset (a1, 0, 0x38);
         a1[0] = 1;
         return 1;
     }
 
-    virtual int32_t Unk20 () {
-        // printf ("Unk20 called\n");
-        return 0;
-    }
+    virtual int32_t Unk20 () { return 0; }
 
-    virtual int32_t Unk21 () {
-        // printf ("Unk21 called\n");
-        return 1;
-    }
+    virtual int32_t Unk21 () { return 1; }
 
-    virtual int32_t Unk22 () {
-        // printf ("Unk22 called\n");
-        return 0;
-    }
+    virtual int32_t Unk22 () { return 0; }
 
-    virtual int32_t Unk23 () {
-        // printf ("Unk23 called\n");
-        return 0;
-    }
+    virtual int32_t Unk23 () { return 0; }
 
-    virtual int32_t Unk24 () {
-        // printf ("Unk24 called\n");
-        return 0;
-    }
+    virtual int32_t Unk24 () { return 0; }
 
-    virtual int32_t Unk25 () {
-        // printf ("Unk25 called\n");
-        return 1;
-    }
+    virtual int32_t Unk25 () { return 1; }
 
-    virtual int32_t Unk26 () {
-        // printf ("Unk26 called\n");
-        return 0;
-    }
+    virtual int32_t Unk26 () { return 0; }
 
-    virtual int32_t Unk27 () {
-        // printf ("Unk27 called\n");
-        return 1;
-    }
+    virtual int32_t Unk27 () { return 1; }
 
-    virtual int32_t Unk28 () {
-        // printf ("Unk28 called\n");
-        return 0;
-    }
+    virtual int32_t Unk28 () { return 0; }
 
-    virtual int32_t Unk29 () {
-        // printf ("Unk29 called\n");
-        return 0;
-    }
+    virtual int32_t Unk29 () { return 0; }
 
-    virtual int32_t Unk30 () {
-        // printf ("Unk30 called\n");
-        return 0;
-    }
+    virtual int32_t Unk30 () { return 0; }
 
-    virtual int32_t PrintDebugInfo () {
-        // printf ("Unk31 called\n");
-        return 0;
-    }
+    virtual int32_t PrintDebugInfo () { return 0; }
 
-    virtual int32_t Unk32 (void *a1) {
-        // printf ("Unk32 called\n");
-        return 0;
-    }
+    virtual int32_t Unk32 (void *a1) { return 0; }
 
-    virtual void Unk33 () {
-        // printf ("Unk33 called\n");
-    }
+    virtual void Unk33 () {}
 
 public:
     CAuth () {}
@@ -639,8 +558,8 @@ CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsC
 
 void
 Init () {
-    LogMessage(__FILE__, __LINE__, "Init AmAuth patches", LOG_LEVEL_DEBUG);
-    
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init AmAuth patches", LOG_LEVEL_DEBUG);
+
     g_origCoCreateInstance = safetyhook::create_inline (PROC_ADDRESS ("ole32.dll", "CoCreateInstance"), CoCreateInstanceHook);
 
     struct addrinfo *res = 0;

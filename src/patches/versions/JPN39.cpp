@@ -5,10 +5,13 @@
 
 namespace patches::JPN39 {
 
-HOOK_DYNAMIC (char, AMFWTerminate, i64) { return 0; }
+HOOK_DYNAMIC (char, AMFWTerminate, i64) {
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AMFWTerminate was called", LOG_LEVEL_HOOKS);
+    return 0;
+}
 
 HOOK_DYNAMIC (i64, curl_easy_setopt, i64 a1, i64 a2, i64 a3, i64 a4, i64 a5) {
-    // printf ("garmc curl_easy_setopt\n");
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Garmc curl_easy_setopt was called", LOG_LEVEL_HOOKS);
     originalcurl_easy_setopt.call<i64> (a1, 64, 0, 0, 0);
     originalcurl_easy_setopt.call<i64> (a1, 81, 0, 0, 0);
     return originalcurl_easy_setopt.call<i64> (a1, a2, a3, a4, a5);
@@ -41,10 +44,10 @@ lua_pushbool (i64 a1, bool val) {
     return 1;
 }
 
-u64 appAccessor = 0;
+u64 appAccessor       = 0;
 u64 componentAccessor = 0;
-HOOK (i64, DeviceCheck, ASLR(0x140464FC0), i64 a1, i64 a2, i64 a3) {
-    LogMessage(__FILE__, __LINE__, "DeviceCheck was called", LOG_LEVEL_HOOKS);
+HOOK (i64, DeviceCheck, ASLR (0x140464FC0), i64 a1, i64 a2, i64 a3) {
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "DeviceCheck was called", LOG_LEVEL_HOOKS);
     TestMode::SetupAccessor (a3, RefTestModeMain);
     componentAccessor = a2;
     return originalDeviceCheck.call<i64> (a1, a2, a3);
@@ -54,61 +57,53 @@ int
 GetUserStatus () {
     if (appAccessor) {
         u64 playDataManager = RefPlayDataManager (appAccessor);
-        if (playDataManager) return GetUserCount(playDataManager);
+        if (playDataManager) return GetUserCount (playDataManager);
     }
     return -1;
 }
 
 HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "AvailableMode_Collabo024 was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo024 was called", LOG_LEVEL_HOOKS);
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo024.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo024");
-    if (status == 1 && GetUserStatus () == 1) {
-        return lua_pushbool (a1, true);
-    }
+    if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
     return originalAvailableMode_Collabo024.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "AvailableMode_Collabo025 was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo025 was called", LOG_LEVEL_HOOKS);
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo025.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo025");
-    if (status == 1 && GetUserStatus () == 1) {
-        return lua_pushbool (a1, true);
-    }
+    if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
     return originalAvailableMode_Collabo025.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "AvailableMode_Collabo026 was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo026 was called", LOG_LEVEL_HOOKS);
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo026.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo026");
-    if (status == 1 && GetUserStatus () == 1) {
-        return lua_pushbool (a1, true);
-    }
+    if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
     return originalAvailableMode_Collabo026.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "AvailableMode_AprilFool001 was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_AprilFool001 was called", LOG_LEVEL_HOOKS);
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_AprilFool001.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeAprilFool001");
-    if (status == 1) {
-        return lua_pushbool (a1, true);
-    }
+    if (status == 1) return lua_pushbool (a1, true);
     return originalAvailableMode_AprilFool001.call<i64> (a1);
 }
 i64 __fastcall lua_freeze_timer (i64 a1) {
-    LogMessage(__FILE__, __LINE__, "lua_freeze_timer was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "lua_freeze_timer was called", LOG_LEVEL_HOOKS);
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
-    if (tournamentMode == 1) return lua_pushbool (a1, true); 
+    if (tournamentMode == 1) return lua_pushbool (a1, true);
     int status = TestMode::ReadTestModeValue (L"ModFreezeTimer");
     if (status == 1) return lua_pushbool (a1, true);
     return lua_pushbool (a1, false);
 }
 MID_HOOK (FreezeTimer, ASLR (0x14019FF51), SafetyHookContext &ctx) {
-    LogMessage(__FILE__, __LINE__, "FreezeTimer was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "FreezeTimer was called", LOG_LEVEL_HOOKS);
     auto a1 = ctx.rdi;
     int v9  = (int)(ctx.rax + 1);
     lua_pushcclosure (a1, reinterpret_cast<i64> (&lua_freeze_timer), v9);
@@ -163,115 +158,54 @@ ExecuteSendResultData () {
     );
 }
 
-bool sendFlag = false;
-#define SCENE_RESULT_HOOK(functionName, location)                     \
-    HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) {     \
-        if (                                                          \
-            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && \
-            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4   \
-        ) { original##functionName.call (a1, a2, a3); return; }       \
-        sendFlag = true;                                              \
-        original##functionName.call (a1, a2, a3);                     \
-        ExecuteSendResultData ();                                     \
-    }
-
 SCENE_RESULT_HOOK (SceneResultInitialize_Enso, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_AI, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_Collabo025, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_Collabo026, ASLR (0x140411FD0));
 SCENE_RESULT_HOOK (SceneResultInitialize_AprilFool, ASLR (0x140411FD0));
 
-#define SEND_RESULT_HOOK(functionName, location)                      \
-    HOOK (void, functionName, location, i64 a1) {                     \
-        if (                                                          \
-            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && \
-            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4   \
-        ) { original##functionName.call (a1); return; }               \
-        if (sendFlag) {                                               \
-            sendFlag = false;                                         \
-            original##functionName.call (a1);                         \
-        }                                                             \
-    }
-
 SEND_RESULT_HOOK (SendResultData_Enso, ASLR (0x1401817B0));
 SEND_RESULT_HOOK (SendResultData_AI, ASLR (0x1401755E0));
 SEND_RESULT_HOOK (SendResultData_Collabo025_026, ASLR (0x140179A00));
 SEND_RESULT_HOOK (SendResultData_AprilFool, ASLR (0x140177800));
-
-#define CHANGE_RESULT_SIZE_HOOK(functionName, location, target)          \
-    MID_HOOK (functionName, location, SafetyHookContext &ctx) {          \
-        if (                                                             \
-            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 &&    \
-            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4      \
-        ) { return; }                                                    \
-        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);    \
-        u32 currentStageCount = *(u32 *)(instance + 8);                  \
-        ctx.target &= 0xFFFFFFFF00000000;                                \
-        ctx.target |= currentStageCount;                                 \
-    }
 
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_Enso, ASLR (0x140180074), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_AI, ASLR (0x140173774), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_Collabo025_026, ASLR (0x140178244), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_AprilFool, ASLR (0x140176044), rax);
 
-#define CHANGE_RESULT_INDEX_HOOK(functionName, location, target, offset, skip) \
-    MID_HOOK (functionName, location, SafetyHookContext &ctx) {                \
-        if (                                                                   \
-            TestMode::ReadTestModeValue (L"ModInstantResult") != 1 &&          \
-            TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4            \
-        ) { return; }                                                          \
-        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);          \
-        u32 currentStageCount = *(u32 *)(instance + 8);                        \
-        ctx.target &= 0xFFFFFFFF00000000;                                      \
-        ctx.target |= currentStageCount - 1;                                   \
-        *(u32 *)(ctx.rsp + offset) = currentStageCount - 1;                    \
-        ctx.rip += skip;                                                       \
-    }
-
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_Enso, ASLR (0x14018074B), rax, 0x34, 0x07);
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AI, ASLR (0x140173EDD), r13, 0x24, 0x08);
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_Collabo025_026, ASLR (0x1401789AD), r13, 0x24, 0x08);
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AprilFool, ASLR (0x140176716), rax, 0x34, 0x06);
 
-int language = 0;
-const char *
-languageStr () {
-    switch (language) {
-    case 1: return "en_us";
-    case 2: return "cn_tw";
-    case 3: return "kor";
-    case 4: return "cn_cn";
-    default: return "jpn";
-    }
-}
 HOOK (i64, GetLanguage, ASLR (0x140024AC0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "GetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetLanguage was called", LOG_LEVEL_HOOKS);
     auto result = originalGetLanguage.call<i64> (a1);
     language    = *((u32 *)result);
     return result;
 }
 HOOK (i64, GetRegionLanguage, ASLR (0x1401CE9B0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "GetRegionLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetRegionLanguage was called", LOG_LEVEL_HOOKS);
     lua_settop (a1, 0);
     lua_pushstring (a1, languageStr ());
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401D1A60), i64, i64 a2) {
-    LogMessage(__FILE__, __LINE__, "GetCabinetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetCabinetLanguage was called", LOG_LEVEL_HOOKS);
     lua_settop (a2, 0);
     lua_pushstring (a2, languageStr ());
     return 1;
 }
 
 MID_HOOK (ChangeLanguageType, ASLR (0x1400B2016), SafetyHookContext &ctx) {
-    LogMessage(__FILE__, __LINE__, "ChangeLanguageType was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "ChangeLanguageType was called", LOG_LEVEL_HOOKS);
     int *pFontType = (int *)ctx.rax;
     if (*pFontType == 4) *pFontType = 2;
 }
 
 MID_HOOK (CountLockedCrown, ASLR (0x1403F2A25), SafetyHookContext &ctx) {
-    LogMessage(__FILE__, __LINE__, "CountLockedCrown was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "CountLockedCrown was called", LOG_LEVEL_HOOKS);
     ctx.r15 |= 1;
 }
 
@@ -324,7 +258,7 @@ check_voice_tail (std::string bankName, uint8_t *pBinfBlock, std::map<std::strin
 }
 
 MID_HOOK (GenNus3bankId, ASLR (0x1407B97BD), SafetyHookContext &ctx) {
-    LogMessage(__FILE__, __LINE__, "GenNus3bankId was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GenNus3bankId was called", LOG_LEVEL_HOOKS);
     std::lock_guard<std::mutex> lock (nus3bankMtx);
     if ((uint8_t **)(ctx.rcx + 8) != nullptr) {
         uint8_t *pNus3bankFile = *((uint8_t **)(ctx.rcx + 8));
@@ -350,7 +284,7 @@ FixToneName (std::string bankName, std::string toneName) {
 
 size_t commonSize = 0;
 HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "PlaySound was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySound was called", LOG_LEVEL_HOOKS);
     if (enableSwitchVoice && language != 0) {
         std::string bankName (lua_tolstring (a1, -3, &commonSize));
         if (bankName[0] == 'v') {
@@ -362,7 +296,7 @@ HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
 }
 
 HOOK (i64, PlaySoundMulti, ASLR (0x1404C6D60), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "PlaySoundMulti was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundMulti was called", LOG_LEVEL_HOOKS);
     if (enableSwitchVoice && language != 0) {
         std::string bankName ((char *)lua_tolstring (a1, -3, &commonSize));
         if (bankName[0] == 'v') {
@@ -384,7 +318,7 @@ FixToneNameEnso (u64 *Src, std::string &bankName) {
 }
 
 HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
-    LogMessage(__FILE__, __LINE__, "PlaySoundEnso was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundEnso was called", LOG_LEVEL_HOOKS);
     if (enableSwitchVoice && language != 0) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
@@ -393,7 +327,7 @@ HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
 }
 
 HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
-    LogMessage(__FILE__, __LINE__, "PlaySoundSpecial was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundSpecial was called", LOG_LEVEL_HOOKS);
     if (enableSwitchVoice && language != 0) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
@@ -403,7 +337,7 @@ HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
 
 int loaded_fail_count = 0;
 HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
-    LogMessage(__FILE__, __LINE__, "LoadedBankAll was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "LoadedBankAll was called", LOG_LEVEL_HOOKS);
     originalLoadedBankAll.call<i64> (a1);
     auto result = lua_toboolean (a1, -1);
     lua_settop (a1, 0);
@@ -422,31 +356,29 @@ HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
 
 float soundRate = 1.0F;
 HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
-    LogMessage(__FILE__, __LINE__, "SetMasterVolumeSpeaker was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "SetMasterVolumeSpeaker was called", LOG_LEVEL_HOOKS);
     soundRate = a1 <= 100 ? 1.0F : a1 / 100.0;
     return originalSetMasterVolumeSpeaker.call<i32> (a1 > 100 ? 100 : a1);
 }
 
 HOOK (u64, NuscBusVolume, ASLR (0x1407B1C30), u64 a1, u64 a2, float a3) {
-    LogMessage(__FILE__, __LINE__, "NuscBusVolume was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "NuscBusVolume was called", LOG_LEVEL_HOOKS);
     return originalNuscBusVolume.call<u64> (a1, a2, a3 * soundRate);
 }
 
-std::string* fontName = nullptr;
+std::string *fontName = nullptr;
 HOOK (u8, SetupFontInfo, ASLR (0x14049D820), u64 a1, u64 a2, size_t a3, u64 a4) {
-    LogMessage(__FILE__, __LINE__, "SetupFontInfo was called", LOG_LEVEL_HOOKS);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "SetupFontInfo was called", LOG_LEVEL_HOOKS);
     if (fontName != nullptr) delete fontName;
-    fontName = new std::string(((char*)a1) + 120);
+    fontName = new std::string (((char *)a1) + 120);
     return originalSetupFontInfo.call<u8> (a1, a2, a3, a4);
 }
 
 HOOK (u32, ReadFontInfoInt, ASLR (0x14049EAC0), u64 a1, u64 a2) {
-    LogMessage(__FILE__, __LINE__, "ReadFontInfoInt was called", LOG_LEVEL_HOOKS);
-    std::string attribute((char*)a2);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "ReadFontInfoInt was called", LOG_LEVEL_HOOKS);
+    std::string attribute ((char *)a2);
     u32 result = originalReadFontInfoInt.call<u32> (a1, a2);
-    if (fontName->starts_with("cn_") && attribute == "offsetV") {
-        result += 1;
-    }
+    if (fontName->starts_with ("cn_") && attribute == "offsetV") result += 1;
     return result;
 }
 
@@ -479,13 +411,12 @@ ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *ne
 
 void
 Init () {
-    i32 xRes              = 1920;
-    i32 yRes              = 1080;
-    bool vsync            = false;
-    bool unlockSongs      = true;
-    bool fixLanguage      = false;
-    bool chsPatch         = false;
-
+    i32 xRes          = 1920;
+    i32 yRes          = 1080;
+    bool vsync        = false;
+    bool unlockSongs  = true;
+    bool fixLanguage  = false;
+    bool chsPatch     = false;
     bool useLayeredfs = false;
 
     auto configPath = std::filesystem::current_path () / "config.toml";
@@ -496,8 +427,8 @@ Init () {
             unlockSongs = readConfigBool (patches, "unlock_songs", unlockSongs);
             auto jpn39  = openConfigSection (patches, "jpn39");
             if (jpn39) {
-                fixLanguage      = readConfigBool (jpn39, "fix_language", fixLanguage);
-                chsPatch         = readConfigBool (jpn39, "chs_patch", chsPatch);
+                fixLanguage = readConfigBool (jpn39, "fix_language", fixLanguage);
+                chsPatch    = readConfigBool (jpn39, "chs_patch", chsPatch);
             }
         }
 
@@ -577,55 +508,55 @@ Init () {
     }
 
     // Freeze Timer
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＦＲＥＥＺＥ ＴＩＭＥＲ\" param-offset-x=\"35\" replace-text=\"0:ＯＦＦ, 1:ＯＮ\" group=\"Setting\" id=\"ModFreezeTimer\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() { INSTALL_MID_HOOK (FreezeTimer); }
-    );
+    TestMode::RegisterItem (L"<select-item label=\"FREEZE TIMER\" param-offset-x=\"35\" replace-text=\"0:OFF, 1:ON\" "
+                            L"group=\"Setting\" id=\"ModFreezeTimer\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () { INSTALL_MID_HOOK (FreezeTimer); });
     // Mode Unlock
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＫＩＭＥＴＳＵ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo024\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() { INSTALL_HOOK (AvailableMode_Collabo024); }
-    );
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＯＮＥ ＰＩＥＣＥ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo025\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() { INSTALL_HOOK (AvailableMode_Collabo025); }
-    );
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＡＩ ＳＯＳＨＩＮＡ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeCollabo026\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() { INSTALL_HOOK (AvailableMode_Collabo026); }
-    );
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＡＯＨＡＲＵ ＭＯＤＥ\" param-offset-x=\"35\" replace-text=\"0:ＤＥＦＡＵＬＴ, 1:ＥＮＡＢＬＥ, 2:ＣＡＲＤ ＯＮＬＹ\" group=\"Setting\" id=\"ModModeAprilFool001\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() { INSTALL_HOOK (AvailableMode_AprilFool001); }
-    );
-    TestMode::RegisterItem(
-        L"<select-item label=\"ＩＮＳＴＡＮＴ ＲＥＳＵＬＴ\" param-offset-x=\"35\" replace-text=\"0:ＯＦＦ, 1:ＯＮ\" group=\"Setting\" id=\"ModInstantResult\" max=\"1\" min=\"0\" default=\"0\"/>",
-        [&]() {
-            INSTALL_HOOK (SceneResultInitialize_Enso);
-            INSTALL_HOOK (SceneResultInitialize_AI);
-            INSTALL_HOOK (SceneResultInitialize_Collabo025);
-            INSTALL_HOOK (SceneResultInitialize_Collabo026);
-            INSTALL_HOOK (SceneResultInitialize_AprilFool);
-            INSTALL_HOOK (SendResultData_Enso);
-            INSTALL_HOOK (SendResultData_AI);
-            INSTALL_HOOK (SendResultData_Collabo025_026);
-            INSTALL_HOOK (SendResultData_AprilFool);
-            INSTALL_MID_HOOK (ChangeResultDataSize_Enso);
-            INSTALL_MID_HOOK (ChangeResultDataSize_AI);
-            INSTALL_MID_HOOK (ChangeResultDataSize_Collabo025_026);
-            INSTALL_MID_HOOK (ChangeResultDataSize_AprilFool);
-            INSTALL_MID_HOOK (ChangeResultDataIndex_Enso);
-            INSTALL_MID_HOOK (ChangeResultDataIndex_AI);
-            INSTALL_MID_HOOK (ChangeResultDataIndex_Collabo025_026);
-            INSTALL_MID_HOOK (ChangeResultDataIndex_AprilFool);
-        }
-    );
+    TestMode::RegisterItem (L"<select-item label=\"KIMETSU MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, 1:ENABLE, "
+                            L"2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo024\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () { INSTALL_HOOK (AvailableMode_Collabo024); });
+    TestMode::RegisterItem (L"<select-item label=\"ONE PIECE MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, "
+                            L"1:ENABLE, 2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo025\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () { INSTALL_HOOK (AvailableMode_Collabo025); });
+    TestMode::RegisterItem (L"<select-item label=\"AI SOSHINA MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, "
+                            L"1:ENABLE, 2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo026\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () { INSTALL_HOOK (AvailableMode_Collabo026); });
+    TestMode::RegisterItem (L"<select-item label=\"AOHARU MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, 1:ENABLE, "
+                            L"2:CARD ONLY\" group=\"Setting\" id=\"ModModeAprilFool001\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () { INSTALL_HOOK (AvailableMode_AprilFool001); });
+    TestMode::RegisterItem (L"<select-item label=\"INSTANT RESULT\" param-offset-x=\"35\" replace-text=\"0:OFF, 1:ON\" "
+                            L"group=\"Setting\" id=\"ModInstantResult\" max=\"1\" min=\"0\" default=\"0\"/>",
+                            [&] () {
+                                INSTALL_HOOK (SceneResultInitialize_Enso);
+                                INSTALL_HOOK (SceneResultInitialize_AI);
+                                INSTALL_HOOK (SceneResultInitialize_Collabo025);
+                                INSTALL_HOOK (SceneResultInitialize_Collabo026);
+                                INSTALL_HOOK (SceneResultInitialize_AprilFool);
+                                INSTALL_HOOK (SendResultData_Enso);
+                                INSTALL_HOOK (SendResultData_AI);
+                                INSTALL_HOOK (SendResultData_Collabo025_026);
+                                INSTALL_HOOK (SendResultData_AprilFool);
+                                INSTALL_MID_HOOK (ChangeResultDataSize_Enso);
+                                INSTALL_MID_HOOK (ChangeResultDataSize_AI);
+                                INSTALL_MID_HOOK (ChangeResultDataSize_Collabo025_026);
+                                INSTALL_MID_HOOK (ChangeResultDataSize_AprilFool);
+                                INSTALL_MID_HOOK (ChangeResultDataIndex_Enso);
+                                INSTALL_MID_HOOK (ChangeResultDataIndex_AI);
+                                INSTALL_MID_HOOK (ChangeResultDataIndex_Collabo025_026);
+                                INSTALL_MID_HOOK (ChangeResultDataIndex_AprilFool);
+                            });
     // Unlimit Volume
-    TestMode::RegisterModify(
+    TestMode::RegisterModify (
         L"/root/menu[@id='SoundTestMenu']/layout[@type='Center']/select-item[@id='OutputLevelSpeakerItem']",
-        [&](pugi::xml_node &node) { TestMode::Append(node, L"label", L"*"); node.attribute(L"max").set_value(L"300"); node.attribute(L"delta").set_value(L"1"); },
-        [&]() { INSTALL_HOOK (SetMasterVolumeSpeaker); INSTALL_HOOK (NuscBusVolume); }
-    );
+        [&] (pugi::xml_node &node) {
+            TestMode::Append (node, L"label", L"*");
+            node.attribute (L"max").set_value (L"300");
+            node.attribute (L"delta").set_value (L"1");
+        },
+        [&] () {
+            INSTALL_HOOK (SetMasterVolumeSpeaker);
+            INSTALL_HOOK (NuscBusVolume);
+        });
     // Instant Result
     // TestMode::RegisterModify(
     //     L"/root/menu[@id='GameOptionsMenu']/layout[@type='Center']/select-item[@id='NumberOfStageItem']",
@@ -658,10 +589,10 @@ Init () {
             INSTALL_HOOK (ReadFontInfoInt);
         }
 
-        LayeredFs::RegisterBefore([=](const std::string originalFileName, const std::string currentFileName) -> std::string {
+        LayeredFs::RegisterBefore ([=] (const std::string originalFileName, const std::string currentFileName) -> std::string {
             if (currentFileName.find ("\\lumen\\") == std::string::npos) return "";
             std::string fileName = currentFileName;
-            fileName = replace(fileName, "\\lumen\\", "\\lumen_cn\\");
+            fileName             = replace (fileName, "\\lumen\\", "\\lumen_cn\\");
             if (std::filesystem::exists (fileName)) return fileName;
             else return currentFileName;
         });

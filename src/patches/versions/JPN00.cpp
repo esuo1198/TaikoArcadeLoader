@@ -2,15 +2,6 @@
 #include "../patches.h"
 #include <safetyhook.hpp>
 
-extern u64 song_data_size;
-extern void *song_data;
-
-#define RDX_MOV 0x48, 0xBA
-#define R8_MOV  0x49, 0xB8
-#define GENERATE_MOV(instruction, location)                                                                                 \
-    instruction, (u8)(u64)(location), (u8)((u64)(location) >> 8), (u8)((u64)(location) >> 16), (u8)((u64)(location) >> 24), \
-        (u8)((u64)(location) >> 32), (u8)((u64)(location) >> 40), (u8)((u64)(location) >> 48), (u8)((u64)(location) >> 56)
-
 namespace patches::JPN00 {
 
 HOOK_DYNAMIC (char, AMFWTerminate, i64) { return 0; }

@@ -39,7 +39,7 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 #define HOOK(returnType, functionName, location, ...) \
     SafetyHookInline original##functionName{};        \
     void *where##functionName = (void *)location;     \
-    returnType implOf##functionName (__VA_ARGS__)     \
+    returnType implOf##functionName (__VA_ARGS__)
 
 #define HOOK_DYNAMIC(returnType, functionName, ...) \
     SafetyHookInline original##functionName{};      \
@@ -61,10 +61,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     void *where##functionName = NULL;       \
     void implOf##functionName (SafetyHookContext &ctx)
 
-#define INSTALL_HOOK(functionName)                                                                                      \
-    {                                                                                                                   \
-        LogMessage(__FILE__, __LINE__, (std::string("Installing hook for ") + #functionName).c_str(), LOG_LEVEL_DEBUG); \
-        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName);                 \
+#define INSTALL_HOOK(functionName)                                                                                                       \
+    {                                                                                                                                    \
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing hook for ") + #functionName).c_str (), LOG_LEVEL_DEBUG); \
+        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName);                                  \
     }
 
 #define INSTALL_HOOK_DYNAMIC(functionName, location) \
@@ -73,10 +73,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (functionName);                 \
     }
 
-#define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                                      \
-    {                                                                                                                      \
-        LogMessage(__FILE__, __LINE__, (std::string("Installing direct hook for ") + #location).c_str(), LOG_LEVEL_DEBUG); \
-        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));                      \
+#define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                                                       \
+    {                                                                                                                                       \
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing direct hook for ") + #location).c_str (), LOG_LEVEL_DEBUG); \
+        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));                                       \
     }
 
 #define INSTALL_VTABLE_HOOK(className, object, functionName, functionIndex)                     \
@@ -85,16 +85,60 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (className##functionName);                                                 \
     }
 
-#define INSTALL_MID_HOOK(functionName)                                                                                      \
-    {                                                                                                                       \
-        LogMessage(__FILE__, __LINE__, (std::string("Installing mid hook for ") + #functionName).c_str(), LOG_LEVEL_DEBUG); \
-        midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);                         \
+#define INSTALL_MID_HOOK(functionName)                                                                                                       \
+    {                                                                                                                                        \
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing mid hook for ") + #functionName).c_str (), LOG_LEVEL_DEBUG); \
+        midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);                                          \
     }
 
 #define INSTALL_MID_HOOK_DYNAMIC(functionName, location) \
     {                                                    \
         where##functionName = (void *)location;          \
         INSTALL_MID_HOOK (functionName);                 \
+    }
+
+bool sendFlag = false;
+#define SCENE_RESULT_HOOK(functionName, location)                                                                                \
+    HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) {                                                                \
+        if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { \
+            original##functionName.call (a1, a2, a3);                                                                            \
+            return;                                                                                                              \
+        }                                                                                                                        \
+        sendFlag = true;                                                                                                         \
+        original##functionName.call (a1, a2, a3);                                                                                \
+        ExecuteSendResultData ();                                                                                                \
+    }
+
+#define SEND_RESULT_HOOK(functionName, location)                                                                                 \
+    HOOK (void, functionName, location, i64 a1) {                                                                                \
+        if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { \
+            original##functionName.call (a1);                                                                                    \
+            return;                                                                                                              \
+        }                                                                                                                        \
+        if (sendFlag) {                                                                                                          \
+            sendFlag = false;                                                                                                    \
+            original##functionName.call (a1);                                                                                    \
+        }                                                                                                                        \
+    }
+
+#define CHANGE_RESULT_SIZE_HOOK(functionName, location, target)                                                                            \
+    MID_HOOK (functionName, location, SafetyHookContext &ctx) {                                                                            \
+        if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { return; } \
+        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);                                                                      \
+        u32 currentStageCount = *(u32 *)(instance + 8);                                                                                    \
+        ctx.target &= 0xFFFFFFFF00000000;                                                                                                  \
+        ctx.target |= currentStageCount;                                                                                                   \
+    }
+
+#define CHANGE_RESULT_INDEX_HOOK(functionName, location, target, offset, skip)                                                             \
+    MID_HOOK (functionName, location, SafetyHookContext &ctx) {                                                                            \
+        if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { return; } \
+        i64 instance          = RefPlayDataManager (*(i64 *)ctx.r12);                                                                      \
+        u32 currentStageCount = *(u32 *)(instance + 8);                                                                                    \
+        ctx.target &= 0xFFFFFFFF00000000;                                                                                                  \
+        ctx.target |= currentStageCount - 1;                                                                                               \
+        *(u32 *)(ctx.rsp + offset) = currentStageCount - 1;                                                                                \
+        ctx.rip += skip;                                                                                                                   \
     }
 
 #define READ_MEMORY(location, type) *(type *)location
@@ -135,7 +179,7 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     }
 
 #define COUNTOFARR(arr) sizeof (arr) / sizeof (arr[0])
-#define round(num)                ((num > 0) ? (int)(num + 0.5) : (int)(num - 0.5))
+#define round(num)      ((num > 0) ? (int)(num + 0.5) : (int)(num - 0.5))
 
 toml_table_t *openConfig (std::filesystem::path path);
 toml_table_t *openConfigSection (toml_table_t *config, const std::string &sectionName);
@@ -147,17 +191,25 @@ std::wstring replace (const std::wstring orignStr, const std::wstring oldStr, co
 std::string replace (const std::string orignStr, const std::string oldStr, const std::string newStr);
 std::vector<SafetyHookInline> directHooks = {};
 
-const char* GameVersionToString(GameVersion version) {
+const char *
+GameVersionToString (GameVersion version) {
     switch (version) {
-        case GameVersion::JPN00:
-            return "JPN00";
-        case GameVersion::JPN08:
-            return "JPN08";
-        case GameVersion::JPN39:
-            return "JPN39";
-        case GameVersion::CHN00:
-            return "CHN00";
-        default:
-            return "UNKNOWN";
+    case GameVersion::JPN00: return "JPN00";
+    case GameVersion::JPN08: return "JPN08";
+    case GameVersion::JPN39: return "JPN39";
+    case GameVersion::CHN00: return "CHN00";
+    default: return "UNKNOWN";
+    }
+}
+
+int language = 0;
+const char *
+languageStr () {
+    switch (language) {
+    case 1: return "en_us";
+    case 2: return "cn_tw";
+    case 3: return "kor";
+    case 4: return "cn_cn";
+    default: return "jpn";
     }
 }

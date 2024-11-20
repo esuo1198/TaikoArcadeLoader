@@ -62,8 +62,7 @@ HOOK_DYNAMIC (bool, Send3, i64, char) { return true; }
 HOOK_DYNAMIC (bool, Send4, i64, const void *, i64) { return true; }
 HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
     if (gState == State::CopyWait) {
-        std::cout << "Copy data, length: " << length << std::endl;
-
+        // std::cout << "Copy data, length: " << length << std::endl;
         auto configPath = std::filesystem::current_path () / "config.toml";
         std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
 
@@ -114,9 +113,10 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             byteBuffer.push_back (0xEE);
             byteBuffer.push_back (0xFF);
 
+            std::stringstream hexStream;
             for (auto byteData : byteBuffer)
-                std::cout << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (byteData) << " ";
-            std::cout << std::endl;
+                hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (byteData) << " ";
+            LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Data dump: " + hexStream.str ()).c_str (), LOG_LEVEL_INFO);
 
             memcpy (dest, byteBuffer.data (), byteBuffer.size ());
             gState = State::Ready;
@@ -132,8 +132,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::u8string u8PathStr (imagePath.begin (), imagePath.end ());
             std::filesystem::path u8Path (u8PathStr);
             if (!std::filesystem::is_regular_file (u8Path)) {
-                std::cerr << "Failed to open image: " << u8Path.string () << " (file not found)"
-                          << "\n";
+                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str (),
+                            LOG_LEVEL_ERROR);
                 gState = State::Ready;
                 return 0;
             }
@@ -142,8 +142,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::unique_ptr<stbi_uc, void (*) (void *)> buffer (stbi_load (u8Path.string ().c_str (), &width, &height, &channels, 3),
                                                                 stbi_image_free);
             if (!buffer) {
-                std::cerr << "Failed to read image: " << u8Path << " (" << stbi_failure_reason () << ")"
-                          << "\n";
+                LogMessage (__FUNCTION__, __FILE__, __LINE__,
+                            ("Failed to read image: " + u8Path.string () + " (" + stbi_failure_reason () + ")").c_str (), LOG_LEVEL_ERROR);
                 gState = State::Ready;
                 return 0;
             }
@@ -151,15 +151,15 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             ZXing::ImageView image{buffer.get (), width, height, ZXing::ImageFormat::RGB};
             auto result = ReadBarcode (image);
             if (!result.isValid ()) {
-                std::cerr << "Failed to read QR: " << imagePath << " (" << ToString (result.error ()) << ")"
-                          << "\n";
+                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Failed to read QR: " + imagePath + " (" + ToString (result.error ()) + ")").c_str (),
+                            LOG_LEVEL_ERROR);
                 gState = State::Ready;
                 return 0;
             }
 
-            std::cout << "Valid" << std::endl;
+            // std::cout << "Valid" << std::endl;
             auto byteData = result.bytes ();
-            std::cout << ZXing::ToHex (byteData) << std::endl;
+            // std::cout << ZXing::ToHex (byteData) << std::endl;
             auto dataSize = byteData.size ();
 
             memcpy (dest, byteData.data (), dataSize);
@@ -171,12 +171,14 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                 unsigned char plugin_data[length];
                 int buf_len = ((getQrEvent *)getEvent) (length, plugin_data);
                 if (0 < buf_len && buf_len <= length) {
+                    std::stringstream hexStream;
                     for (int i = 0; i < buf_len; i++)
-                        std::cout << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (plugin_data[i]) << " ";
-                    std::cout << std::endl;
+                        hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (plugin_data[i]) << " ";
+                    LogMessage (__FUNCTION__, __FILE__, __LINE__, ("QR dump: " + hexStream.str ()).c_str (), LOG_LEVEL_INFO);
                     memcpy (dest, plugin_data, buf_len);
                 } else {
-                    std::cerr << "QR discard! Length invalid: " << buf_len << ", valid range: 0~" << length << std::endl;
+                    LogMessage (__FUNCTION__, __FILE__, __LINE__,
+                                ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str (), LOG_LEVEL_ERROR);
                 }
                 gState = State::Ready;
                 return buf_len;
@@ -198,35 +200,29 @@ void
 Update () {
     if (!emulateQr) return;
     if (gState == State::Ready) {
+        // std::cout << "Insert" << std::endl;
         if (IsButtonTapped (CARD_INSERT_1)) {
             if (gameVersion != GameVersion::CHN00) return;
-
-            std::cout << "Insert" << std::endl;
             accessCode = "BNTTCNID";
             accessCode += accessCode1;
             gState = State::CopyWait;
             gMode  = Mode::Card;
         } else if (IsButtonTapped (CARD_INSERT_2)) {
             if (gameVersion != GameVersion::CHN00) return;
-
-            std::cout << "Insert" << std::endl;
             accessCode = "BNTTCNID";
             accessCode += accessCode2;
             gState = State::CopyWait;
             gMode  = Mode::Card;
         } else if (IsButtonTapped (QR_DATA_READ)) {
-            std::cout << "Insert" << std::endl;
             gState = State::CopyWait;
             gMode  = Mode::Data;
         } else if (IsButtonTapped (QR_IMAGE_READ)) {
-            std::cout << "Insert" << std::endl;
             gState = State::CopyWait;
             gMode  = Mode::Image;
         } else if (qrPluginRegistered) {
             for (auto plugin : qrPlugins) {
                 FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
                 if (checkEvent && ((checkQrEvent *)checkEvent) ()) {
-                    std::cout << "Insert" << std::endl;
                     gState  = State::CopyWait;
                     gMode   = Mode::Plugin;
                     gPlugin = plugin;
@@ -239,10 +235,10 @@ Update () {
 
 void
 Init () {
-    LogMessage(__FILE__, __LINE__, "Init Qr patches", LOG_LEVEL_DEBUG);
-    
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init Qr patches", LOG_LEVEL_DEBUG);
+
     if (!emulateQr) {
-        std::cout << "[Init] QR emulation disabled" << std::endl;
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, "QR emulation disabled", LOG_LEVEL_WARN);
         return;
     }
 
@@ -254,7 +250,8 @@ Init () {
         if (usingQrEvent) qrPlugins.push_back (plugin);
     }
     if (qrPlugins.size () > 0) {
-        std::cout << "QR plugin found!" << std::endl;
+
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, "QR plugin found!", LOG_LEVEL_INFO);
         qrPluginRegistered = true;
     }
 

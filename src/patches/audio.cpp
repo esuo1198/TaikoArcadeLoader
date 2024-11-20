@@ -23,6 +23,9 @@ bool asio              = false;
 std::string asioDriver = "";
 
 HOOK_DYNAMIC (i64, NUSCDeviceInit, void *a1, nusc_init_config_t *a2, nusc_init_config_t *a3, void *a4) {
+    LogMessage (__FUNCTION__, __FILE__, __LINE__,
+                (std::string ("Device mode is ") + (asio ? "ASIO" : (wasapiShared ? "wasapi shared" : "wasapi exclusive"))).c_str (), LOG_LEVEL_INFO);
+    if (asio) LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("ASIO driver is ") + asioDriver).c_str (), LOG_LEVEL_INFO);
     a2->device_mode      = asio;
     a2->asio_driver_name = asio ? asioDriver.c_str () : "";
     a2->wasapi_exclusive = asio ? 1 : wasapiShared ? 0 : 1;
@@ -31,6 +34,7 @@ HOOK_DYNAMIC (i64, NUSCDeviceInit, void *a1, nusc_init_config_t *a2, nusc_init_c
 HOOK_DYNAMIC (bool, LoadASIODriver, void *a1, const char *a2) {
     auto result = originalLoadASIODriver.call<bool> (a1, a2);
     if (!result) {
+        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Failed to load ASIO driver ") + asioDriver).c_str (), LOG_LEVEL_ERROR);
         MessageBoxA (nullptr, "Failed to load ASIO driver", nullptr, MB_OK);
         ExitProcess (0);
     }
@@ -39,7 +43,7 @@ HOOK_DYNAMIC (bool, LoadASIODriver, void *a1, const char *a2) {
 
 void
 Init () {
-    LogMessage(__FILE__, __LINE__, "Init Audio patches", LOG_LEVEL_DEBUG);
+    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init Audio patches", LOG_LEVEL_DEBUG);
 
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
