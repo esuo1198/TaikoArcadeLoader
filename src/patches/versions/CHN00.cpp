@@ -36,39 +36,39 @@ lua_pushtrue (i64 a1) {
 }
 
 HOOK (i64, AvailableMode_Dani_AI, ASLR (0x1401AC550), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Dani_AI was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Dani_AI was called");
     return lua_pushtrue (a1);
 }
 HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402BFF70), i64 *, i64 a2) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo025 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo025 was called");
     return lua_pushtrue (a2);
 }
 HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402BC9B0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo026 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo026 was called");
     return lua_pushtrue (a1);
 }
 
 HOOK (i64, GetLanguage, ASLR (0x140023720), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetLanguage was called");
     auto result = originalGetLanguage.call<i64> (a1);
     language    = *((u32 *)result);
     return result;
 }
 HOOK (i64, GetRegionLanguage, ASLR (0x1401AC300), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetRegionLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetRegionLanguage was called");
     lua_settop (a1, 0);
     lua_pushstring (a1, (u64)languageStr ());
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401AF270), i64, i64 a2) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetCabinetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetCabinetLanguage was called");
     lua_settop (a2, 0);
     lua_pushstring (a2, (u64)languageStr ());
     return 1;
 }
 
 HOOK_DYNAMIC (char, AMFWTerminate, i64) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AMFWTerminate was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AMFWTerminate was called");
     return 0;
 }
 

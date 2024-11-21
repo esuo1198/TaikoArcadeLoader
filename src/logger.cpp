@@ -31,10 +31,8 @@ SYSTEMTIME systemTime;
 
 void
 InitializeLogger (LogLevel level, bool logToFile) {
-    if (loggerInstance == NULL) {
+    if (loggerInstance == nullptr) {
         loggerInstance = (Logger *)malloc (sizeof (Logger));
-
-        // Ensure that console handle is initialized
         if (consoleHandle == 0) consoleHandle = GetStdHandle (STD_OUTPUT_HANDLE);
     }
 
@@ -42,84 +40,65 @@ InitializeLogger (LogLevel level, bool logToFile) {
 
     if (logToFile) {
         loggerInstance->logFile = fopen ("TaikoArcadeLoader.log", "w"); // Open in write mode
-        if (!loggerInstance->logFile) LogMessage (__FUNCTION__, __FILE__, __LINE__, "Failed to open log.txt for writing.", LOG_LEVEL_WARN);
-    }
+        if (!loggerInstance->logFile) LogMessage (LOG_LEVEL_WARN, "Failed to open TaikoArcadeLoader.log for writing.");
+    } else loggerInstance->logFile = nullptr; // No file logging
 }
 
 void
-LogMessage (const char *function, const char *codeFile, int codeLine, const char *message, LogLevel messageLevel) {
+LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const std::string format, ...) {
+    // Return if no logger or log level is too high
     if (loggerInstance == nullptr || messageLevel > loggerInstance->logLevel) return;
 
     // Lock for thread safety
     std::lock_guard<std::mutex> lock (logMutex);
 
-    // Get current time
-    time_t rawtime;
-    struct tm *timeinfo;
-    char timeStr[20]; // Buffer for time string
-    time (&rawtime);
-    timeinfo = localtime (&rawtime);
-    strftime (timeStr, sizeof (timeStr), "%Y/%m/%d %H:%M:%S", timeinfo);
+    // Format the user-provided message
+    va_list args;
+    va_start (args, format);
+    int requiredSize = vsnprintf (nullptr, 0, format.c_str (), args) + 1; // +1 for null terminator
+    std::unique_ptr<char[]> buffer (new char[requiredSize]);              // Allocate buffer dynamically
+    vsnprintf (buffer.get (), requiredSize, format.c_str (), args);       // Format the string
+    std::string formattedMessage (buffer.get ());                         // Convert to std::string
+    va_end (args);
 
-    // Get milliseconds
+    // Determine log type string
+    std::string logType = GetLogLevelString (messageLevel);
+
+    // Get current time and milliseconds
     SYSTEMTIME systemTime;
     GetSystemTime (&systemTime);
-    int milliseconds = systemTime.wMilliseconds;
+    time_t rawtime      = time (nullptr);
+    struct tm *timeinfo = localtime (&rawtime);
+    std::ostringstream timeStamp;
+    timeStamp << std::put_time (timeinfo, "%Y/%m/%d %H:%M:%S") << "." << std::setw (3) << std::setfill ('0') << systemTime.wMilliseconds;
 
-    const char *logType;
-    switch (messageLevel) {
-    case LOG_LEVEL_DEBUG: logType = "DEBUG: "; break;
-    case LOG_LEVEL_INFO: logType = "INFO:  "; break;
-    case LOG_LEVEL_WARN: logType = "WARN:  "; break;
-    case LOG_LEVEL_ERROR: logType = "ERROR: "; break;
-    case LOG_LEVEL_HOOKS: logType = "HOOKS: "; break;
-    default: logType = "NONE: "; break;
-    }
+    // Construct the log message
+    std::ostringstream logStream;
+    logStream << function << " (" << codeFile << ":" << codeLine << "): " << formattedMessage;
+    std::string logMessage = logStream.str ();
 
-    // Construct the full log message
-    char logMessage[512];
-    snprintf (logMessage, sizeof (logMessage), "%s (%s:%d): %s", function, codeFile, codeLine, message);
+    // Print the log message
+    std::cout << "[" << timeStamp.str () << "] ";                             // Timestamp
+    SetConsoleTextAttribute (consoleHandle, GetLogLevelColor (messageLevel)); // Set Level color
+    std::cout << logType;                                                     // Level
+    SetConsoleTextAttribute (consoleHandle, 4 | 6 | 7 | 9 | 10 | 13);         // Reset console color
+    std::cout << logMessage << std::endl;                                     // Log message
+    std::cout.flush ();                                                       // Flush to ensure immediate writing
 
-    // Print to the console
-    printf ("[%s.%03d] ", timeStr, milliseconds);
-
-    // Set console color based on message level
-    switch (messageLevel) {
-    case LOG_LEVEL_DEBUG: SetConsoleTextAttribute (consoleHandle, FOREGROUND_BLUE); break;
-    case LOG_LEVEL_INFO: SetConsoleTextAttribute (consoleHandle, FOREGROUND_GREEN); break;
-    case LOG_LEVEL_WARN: SetConsoleTextAttribute (consoleHandle, 6); break;
-    case LOG_LEVEL_ERROR: SetConsoleTextAttribute (consoleHandle, FOREGROUND_RED); break;
-    case LOG_LEVEL_HOOKS: SetConsoleTextAttribute (consoleHandle, 5); break;
-    default: break;
-    }
-
-    // Print the log type (level)
-    printf ("%s", logType);
-
-    // Reset the console text color to default
-    SetConsoleTextAttribute (consoleHandle, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | 6);
-
-    // Print the actual log message
-    printf ("%s\n", logMessage);
-
-    // Flush the output immediately to prevent buffering issues
-    fflush (stdout);
-
-    // Write to file if open
     if (loggerInstance->logFile) {
-        fprintf (loggerInstance->logFile, "[%s.%03d] %s%s\n", timeStr, milliseconds, logType, logMessage);
-        fflush (loggerInstance->logFile);
+        fprintf (loggerInstance->logFile, "[%s] %s%s\n", timeStamp.str ().c_str (), logType.c_str (), logMessage.c_str ());
+        fflush (loggerInstance->logFile); // Flush to ensure immediate writing
     }
 }
 
-LogLevel
-GetLogLevel (const std::string &logLevelStr) {
-    if (logLevelStr == "DEBUG") return LOG_LEVEL_DEBUG;
-    else if (logLevelStr == "INFO") return LOG_LEVEL_INFO;
-    else if (logLevelStr == "WARN") return LOG_LEVEL_WARN;
-    else if (logLevelStr == "ERROR") return LOG_LEVEL_ERROR;
-    else if (logLevelStr == "HOOKS") return LOG_LEVEL_HOOKS;
-    return LOG_LEVEL_NONE;
+void
+LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const std::wstring format, ...) {
+    std::string utf8Message = ConvertWideToUtf8 (format); // Convert wide string to UTF-8
+
+    va_list args;
+    va_start (args, format);
+    LogMessageHandler (function, codeFile, codeLine, messageLevel, utf8Message, args); // Delegate to the original handler
+    va_end (args);
 }
 
 void

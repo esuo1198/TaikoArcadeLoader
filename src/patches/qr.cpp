@@ -116,7 +116,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::stringstream hexStream;
             for (auto byteData : byteBuffer)
                 hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (byteData) << " ";
-            LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Data dump: " + hexStream.str ()).c_str (), LOG_LEVEL_INFO);
+            LogMessage (LOG_LEVEL_INFO, ("Data dump: " + hexStream.str ()).c_str ());
 
             memcpy (dest, byteBuffer.data (), byteBuffer.size ());
             gState = State::Ready;
@@ -132,8 +132,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::u8string u8PathStr (imagePath.begin (), imagePath.end ());
             std::filesystem::path u8Path (u8PathStr);
             if (!std::filesystem::is_regular_file (u8Path)) {
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str (),
-                            LOG_LEVEL_ERROR);
+                LogMessage (LOG_LEVEL_ERROR, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -142,8 +141,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::unique_ptr<stbi_uc, void (*) (void *)> buffer (stbi_load (u8Path.string ().c_str (), &width, &height, &channels, 3),
                                                                 stbi_image_free);
             if (!buffer) {
-                LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                            ("Failed to read image: " + u8Path.string () + " (" + stbi_failure_reason () + ")").c_str (), LOG_LEVEL_ERROR);
+                LogMessage (LOG_LEVEL_ERROR, ("Failed to read image: " + u8Path.string () + " (" + stbi_failure_reason () + ")").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -151,8 +149,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             ZXing::ImageView image{buffer.get (), width, height, ZXing::ImageFormat::RGB};
             auto result = ReadBarcode (image);
             if (!result.isValid ()) {
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Failed to read QR: " + imagePath + " (" + ToString (result.error ()) + ")").c_str (),
-                            LOG_LEVEL_ERROR);
+                LogMessage (LOG_LEVEL_ERROR, ("Failed to read QR: " + imagePath + " (" + ToString (result.error ()) + ")").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -174,11 +171,10 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                     std::stringstream hexStream;
                     for (int i = 0; i < buf_len; i++)
                         hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (plugin_data[i]) << " ";
-                    LogMessage (__FUNCTION__, __FILE__, __LINE__, ("QR dump: " + hexStream.str ()).c_str (), LOG_LEVEL_INFO);
+                    LogMessage (LOG_LEVEL_INFO, ("QR dump: " + hexStream.str ()).c_str ());
                     memcpy (dest, plugin_data, buf_len);
                 } else {
-                    LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                                ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str (), LOG_LEVEL_ERROR);
+                    LogMessage (LOG_LEVEL_ERROR, ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str ());
                 }
                 gState = State::Ready;
                 return buf_len;
@@ -235,10 +231,10 @@ Update () {
 
 void
 Init () {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init Qr patches", LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, "Init Qr patches");
 
     if (!emulateQr) {
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "QR emulation disabled", LOG_LEVEL_WARN);
+        LogMessage (LOG_LEVEL_WARN, "QR emulation disabled");
         return;
     }
 
@@ -251,7 +247,7 @@ Init () {
     }
     if (qrPlugins.size () > 0) {
 
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "QR plugin found!", LOG_LEVEL_INFO);
+        LogMessage (LOG_LEVEL_INFO, "QR plugin found!");
         qrPluginRegistered = true;
     }
 

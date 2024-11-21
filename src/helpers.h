@@ -61,10 +61,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     void *where##functionName = NULL;       \
     void implOf##functionName (SafetyHookContext &ctx)
 
-#define INSTALL_HOOK(functionName)                                                                                                       \
-    {                                                                                                                                    \
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing hook for ") + #functionName).c_str (), LOG_LEVEL_DEBUG); \
-        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName);                                  \
+#define INSTALL_HOOK(functionName)                                                                      \
+    {                                                                                                   \
+        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing hook for ") + #functionName).c_str ());  \
+        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName); \
     }
 
 #define INSTALL_HOOK_DYNAMIC(functionName, location) \
@@ -73,10 +73,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (functionName);                 \
     }
 
-#define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                                                       \
-    {                                                                                                                                       \
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing direct hook for ") + #location).c_str (), LOG_LEVEL_DEBUG); \
-        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));                                       \
+#define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                     \
+    {                                                                                                     \
+        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing direct hook for ") + #location).c_str ()); \
+        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));     \
     }
 
 #define INSTALL_VTABLE_HOOK(className, object, functionName, functionIndex)                     \
@@ -85,10 +85,10 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
         INSTALL_HOOK (className##functionName);                                                 \
     }
 
-#define INSTALL_MID_HOOK(functionName)                                                                                                       \
-    {                                                                                                                                        \
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("Installing mid hook for ") + #functionName).c_str (), LOG_LEVEL_DEBUG); \
-        midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);                                          \
+#define INSTALL_MID_HOOK(functionName)                                                                     \
+    {                                                                                                      \
+        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing mid hook for ") + #functionName).c_str ()); \
+        midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);        \
     }
 
 #define INSTALL_MID_HOOK_DYNAMIC(functionName, location) \
@@ -212,4 +212,10 @@ languageStr () {
     case 4: return "cn_cn";
     default: return "jpn";
     }
+}
+
+std::string
+ConvertWideToUtf8 (const std::wstring &wstr) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t> > converter;
+    return converter.to_bytes (wstr);
 }

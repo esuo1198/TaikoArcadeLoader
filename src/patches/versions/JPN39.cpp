@@ -6,12 +6,12 @@
 namespace patches::JPN39 {
 
 HOOK_DYNAMIC (char, AMFWTerminate, i64) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AMFWTerminate was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AMFWTerminate was called");
     return 0;
 }
 
 HOOK_DYNAMIC (i64, curl_easy_setopt, i64 a1, i64 a2, i64 a3, i64 a4, i64 a5) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Garmc curl_easy_setopt was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "Garmc curl_easy_setopt was called");
     originalcurl_easy_setopt.call<i64> (a1, 64, 0, 0, 0);
     originalcurl_easy_setopt.call<i64> (a1, 81, 0, 0, 0);
     return originalcurl_easy_setopt.call<i64> (a1, a2, a3, a4, a5);
@@ -47,7 +47,7 @@ lua_pushbool (i64 a1, bool val) {
 u64 appAccessor       = 0;
 u64 componentAccessor = 0;
 HOOK (i64, DeviceCheck, ASLR (0x140464FC0), i64 a1, i64 a2, i64 a3) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "DeviceCheck was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "DeviceCheck was called");
     TestMode::SetupAccessor (a3, RefTestModeMain);
     componentAccessor = a2;
     return originalDeviceCheck.call<i64> (a1, a2, a3);
@@ -63,7 +63,7 @@ GetUserStatus () {
 }
 
 HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo024 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo024 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo024.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo024");
@@ -71,7 +71,7 @@ HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
     return originalAvailableMode_Collabo024.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo025 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo025 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo025.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo025");
@@ -79,7 +79,7 @@ HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) {
     return originalAvailableMode_Collabo025.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_Collabo026 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo026 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_Collabo026.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo026");
@@ -87,7 +87,7 @@ HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) {
     return originalAvailableMode_Collabo026.call<i64> (a1);
 }
 HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "AvailableMode_AprilFool001 was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_AprilFool001 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return originalAvailableMode_AprilFool001.call<i64> (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeAprilFool001");
@@ -95,7 +95,7 @@ HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) {
     return originalAvailableMode_AprilFool001.call<i64> (a1);
 }
 i64 __fastcall lua_freeze_timer (i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "lua_freeze_timer was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "lua_freeze_timer was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
     if (tournamentMode == 1) return lua_pushbool (a1, true);
     int status = TestMode::ReadTestModeValue (L"ModFreezeTimer");
@@ -103,7 +103,7 @@ i64 __fastcall lua_freeze_timer (i64 a1) {
     return lua_pushbool (a1, false);
 }
 MID_HOOK (FreezeTimer, ASLR (0x14019FF51), SafetyHookContext &ctx) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "FreezeTimer was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "FreezeTimer was called");
     auto a1 = ctx.rdi;
     int v9  = (int)(ctx.rax + 1);
     lua_pushcclosure (a1, reinterpret_cast<i64> (&lua_freeze_timer), v9);
@@ -180,32 +180,32 @@ CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_Collabo025_026, ASLR (0x1401789A
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AprilFool, ASLR (0x140176716), rax, 0x34, 0x06);
 
 HOOK (i64, GetLanguage, ASLR (0x140024AC0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetLanguage was called");
     auto result = originalGetLanguage.call<i64> (a1);
     language    = *((u32 *)result);
     return result;
 }
 HOOK (i64, GetRegionLanguage, ASLR (0x1401CE9B0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetRegionLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetRegionLanguage was called");
     lua_settop (a1, 0);
     lua_pushstring (a1, languageStr ());
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401D1A60), i64, i64 a2) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GetCabinetLanguage was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GetCabinetLanguage was called");
     lua_settop (a2, 0);
     lua_pushstring (a2, languageStr ());
     return 1;
 }
 
 MID_HOOK (ChangeLanguageType, ASLR (0x1400B2016), SafetyHookContext &ctx) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "ChangeLanguageType was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "ChangeLanguageType was called");
     int *pFontType = (int *)ctx.rax;
     if (*pFontType == 4) *pFontType = 2;
 }
 
 MID_HOOK (CountLockedCrown, ASLR (0x1403F2A25), SafetyHookContext &ctx) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "CountLockedCrown was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "CountLockedCrown was called");
     ctx.r15 |= 1;
 }
 
@@ -258,7 +258,7 @@ check_voice_tail (std::string bankName, uint8_t *pBinfBlock, std::map<std::strin
 }
 
 MID_HOOK (GenNus3bankId, ASLR (0x1407B97BD), SafetyHookContext &ctx) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "GenNus3bankId was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "GenNus3bankId was called");
     std::lock_guard<std::mutex> lock (nus3bankMtx);
     if ((uint8_t **)(ctx.rcx + 8) != nullptr) {
         uint8_t *pNus3bankFile = *((uint8_t **)(ctx.rcx + 8));
@@ -284,7 +284,7 @@ FixToneName (std::string bankName, std::string toneName) {
 
 size_t commonSize = 0;
 HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySound was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "PlaySound was called");
     if (enableSwitchVoice && language != 0) {
         std::string bankName (lua_tolstring (a1, -3, &commonSize));
         if (bankName[0] == 'v') {
@@ -296,7 +296,7 @@ HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
 }
 
 HOOK (i64, PlaySoundMulti, ASLR (0x1404C6D60), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundMulti was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "PlaySoundMulti was called");
     if (enableSwitchVoice && language != 0) {
         std::string bankName ((char *)lua_tolstring (a1, -3, &commonSize));
         if (bankName[0] == 'v') {
@@ -318,7 +318,7 @@ FixToneNameEnso (u64 *Src, std::string &bankName) {
 }
 
 HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundEnso was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "PlaySoundEnso was called");
     if (enableSwitchVoice && language != 0) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
@@ -327,7 +327,7 @@ HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
 }
 
 HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "PlaySoundSpecial was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "PlaySoundSpecial was called");
     if (enableSwitchVoice && language != 0) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
@@ -337,7 +337,7 @@ HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
 
 int loaded_fail_count = 0;
 HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "LoadedBankAll was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "LoadedBankAll was called");
     originalLoadedBankAll.call<i64> (a1);
     auto result = lua_toboolean (a1, -1);
     lua_settop (a1, 0);
@@ -356,26 +356,26 @@ HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
 
 float soundRate = 1.0F;
 HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "SetMasterVolumeSpeaker was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "SetMasterVolumeSpeaker was called");
     soundRate = a1 <= 100 ? 1.0F : a1 / 100.0;
     return originalSetMasterVolumeSpeaker.call<i32> (a1 > 100 ? 100 : a1);
 }
 
 HOOK (u64, NuscBusVolume, ASLR (0x1407B1C30), u64 a1, u64 a2, float a3) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "NuscBusVolume was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "NuscBusVolume was called");
     return originalNuscBusVolume.call<u64> (a1, a2, a3 * soundRate);
 }
 
 std::string *fontName = nullptr;
 HOOK (u8, SetupFontInfo, ASLR (0x14049D820), u64 a1, u64 a2, size_t a3, u64 a4) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "SetupFontInfo was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "SetupFontInfo was called");
     if (fontName != nullptr) delete fontName;
     fontName = new std::string (((char *)a1) + 120);
     return originalSetupFontInfo.call<u8> (a1, a2, a3, a4);
 }
 
 HOOK (u32, ReadFontInfoInt, ASLR (0x14049EAC0), u64 a1, u64 a2) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "ReadFontInfoInt was called", LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, "ReadFontInfoInt was called");
     std::string attribute ((char *)a2);
     u32 result = originalReadFontInfoInt.call<u32> (a1, a2);
     if (fontName->starts_with ("cn_") && attribute == "offsetV") result += 1;

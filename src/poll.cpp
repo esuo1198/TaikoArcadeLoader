@@ -330,7 +330,7 @@ void
 SetConfigValue (toml_table_t *table, const char *key, Keybindings *keybind) {
     toml_array_t *array = toml_array_in (table, key);
     if (!array) {
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string (key) + ": Cannot find array").c_str (), LOG_LEVEL_WARN);
+        LogMessage (LOG_LEVEL_WARN, (std::string (key) + ": Cannot find array").c_str ());
         return;
     }
 
@@ -395,18 +395,16 @@ InitializePoll (HWND windowHandle) {
         if (SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0) {
             hasRumble = false;
         } else {
-            LogMessage (__FUNCTION__, __FILE__, __LINE__,
+            LogMessage (LOG_LEVEL_ERROR,
                         (std::string ("SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO): ")
                          + SDL_GetError ())
-                            .c_str (),
-                        LOG_LEVEL_ERROR);
+                            .c_str ());
             return false;
         }
     }
 
     auto configPath = std::filesystem::current_path () / "gamecontrollerdb.txt";
-    if (SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1)
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "Cannot read gamecontrollerdb.txt", LOG_LEVEL_ERROR);
+    if (SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1) LogMessage (LOG_LEVEL_ERROR, "Cannot read gamecontrollerdb.txt");
     SDL_GameControllerEventState (SDL_ENABLE);
     SDL_JoystickEventState (SDL_ENABLE);
 
@@ -415,18 +413,15 @@ InitializePoll (HWND windowHandle) {
 
         SDL_GameController *controller = SDL_GameControllerOpen (i);
         if (!controller) {
-            LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                        (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ()).c_str (),
-                        LOG_LEVEL_WARN);
+            LogMessage (LOG_LEVEL_WARN,
+                        (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ()).c_str ());
             continue;
         }
         controllers[i] = controller;
     }
 
     window = SDL_CreateWindowFrom (windowHandle);
-    if (window == NULL)
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("SDL_CreateWindowFrom (windowHandle): ") + SDL_GetError ()).c_str (),
-                    LOG_LEVEL_ERROR);
+    if (window == NULL) LogMessage (LOG_LEVEL_ERROR, (std::string ("SDL_CreateWindowFrom (windowHandle): ") + SDL_GetError ()).c_str ());
     atexit (DisposePoll);
 
     return hasRumble;
@@ -459,11 +454,9 @@ UpdatePoll (HWND windowHandle) {
 
             controller = SDL_GameControllerOpen (event.cdevice.which);
             if (!controller) {
-                LogMessage (
-                    __FUNCTION__, __FILE__, __LINE__,
-                    (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (event.cdevice.which) + ": " + SDL_GetError ())
-                        .c_str (),
-                    LOG_LEVEL_ERROR);
+                LogMessage (LOG_LEVEL_ERROR, (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (event.cdevice.which)
+                                              + ": " + SDL_GetError ())
+                                                 .c_str ());
                 continue;
             }
             controllers[event.cdevice.which] = controller;
@@ -556,7 +549,7 @@ StringToConfigEnum (const char *value) {
             return rval;
         }
 
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string (value) + ": Unknown value").c_str (), LOG_LEVEL_ERROR);
+    LogMessage (LOG_LEVEL_ERROR, (std::string (value) + ": Unknown value").c_str ());
     return rval;
 }
 

@@ -16,7 +16,7 @@ static u32 i                  = 0;
 
 void
 Init (float fpsLimit) {
-    if (fpsLimit > 0) LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init Fps Limiter", LOG_LEVEL_DEBUG);
+    if (fpsLimit > 0) LogMessage (LOG_LEVEL_DEBUG, "Init Fps Limiter");
     targetFrameTime = 1000.0 / fpsLimit;
 }
 

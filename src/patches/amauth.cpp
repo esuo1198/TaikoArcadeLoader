@@ -558,7 +558,7 @@ CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsC
 
 void
 Init () {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init AmAuth patches", LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, "Init AmAuth patches");
 
     g_origCoCreateInstance = safetyhook::create_inline (PROC_ADDRESS ("ole32.dll", "CoCreateInstance"), CoCreateInstanceHook);
 

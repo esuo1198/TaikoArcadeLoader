@@ -193,28 +193,24 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
 
         if (std::filesystem::exists (newPath)) { // If a file exists in the datamod folder
             if (IsFumenEncrypted (newPath)) {    // And if it's an encrypted fumen or a different type of file, use it.
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Redirecting " + std::filesystem::relative (path).string ()).c_str (),
-                            LOG_LEVEL_DEBUG);
+                LogMessage (LOG_LEVEL_DEBUG, ("Redirecting " + std::filesystem::relative (path).string ()).c_str ());
                 return newPath;
             } else {                                      // Otherwise if it's an unencrypted fumen.
                 if (!std::filesystem::exists (encPath)) { // We check if we don't already have a cached file.
                     if (fumenKey.length () == 64) {
-                        LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Encrypting " + std::filesystem::relative (newPath).string ()).c_str (),
-                                    LOG_LEVEL_DEBUG); // If we don't we encrypt the file
+                        LogMessage (LOG_LEVEL_DEBUG,
+                                    ("Encrypting " + std::filesystem::relative (newPath).string ()).c_str ()); // If we don't we encrypt the file
                         std::ifstream crc_file (newPath, std::ios::binary);
                         std::vector<uint8_t> crc_vector ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
                         uint32_t crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
                         WriteFile (encPath, EncryptFile (newPath, fumenKey), crc); // And we save it
                     } else {
                         LogMessage (
-                            __FUNCTION__, __FILE__, __LINE__,
-                            ("Missing or invalid fumen key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str (),
-                            LOG_LEVEL_ERROR);
+                            LOG_LEVEL_ERROR,
+                            ("Missing or invalid fumen key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str ());
                         encPath = path.string ();
                     }
-                } else
-                    LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                                ("Using cached file for: " + std::filesystem::relative (newPath).string ()).c_str (), LOG_LEVEL_DEBUG);
+                } else LogMessage (LOG_LEVEL_DEBUG, ("Using cached file for: " + std::filesystem::relative (newPath).string ()).c_str ());
                 return encPath;
             }
         }
@@ -235,23 +231,20 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
             if (!std::filesystem::exists (encPath) || crcBool) { // And if it hasn't been encrypted before
                 if (datatableKey.length () == 64) {
                     // Encrypt the file
-                    LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Encrypting " + std::filesystem::relative (json_path).string ()).c_str (),
-                                LOG_LEVEL_DEBUG);
+                    LogMessage (LOG_LEVEL_DEBUG, ("Encrypting " + std::filesystem::relative (json_path).string ()).c_str ());
                     std::ifstream crc_file (json_path.string (), std::ios::binary);
                     std::vector<uint8_t> crc_vector ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
                     uint32_t crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
                     WriteFile (encPath, EncryptFile (json_path.string (), datatableKey), crc); // And save it
                 } else {
                     LogMessage (
-                        __FUNCTION__, __FILE__, __LINE__,
-                        ("Missing or invalid datatable key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str (),
-                        LOG_LEVEL_ERROR);
+                        LOG_LEVEL_ERROR,
+                        ("Missing or invalid datatable key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str ());
                     encPath = path.string ();
                 }
             } else
                 // Otherwise use the already encrypted file.
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Using cached file for: " + std::filesystem::relative (json_path).string ()).c_str (),
-                            LOG_LEVEL_DEBUG);
+                LogMessage (LOG_LEVEL_DEBUG, ("Using cached file for: " + std::filesystem::relative (json_path).string ()).c_str ());
             return encPath;
         }
     }
@@ -263,7 +256,7 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
       LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
     std::string originalFileName = std::string (lpFileName);
     std::string currentFileName  = originalFileName;
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, ("CreateFileA: " + originalFileName).c_str (), LOG_LEVEL_HOOKS);
+    LogMessage (LOG_LEVEL_HOOKS, ("CreateFileA: " + originalFileName).c_str ());
 
     if (!beforeHandlers.empty ()) {
         for (auto handler : beforeHandlers) {
@@ -317,7 +310,7 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
 
 void
 Init () {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init LayeredFs patches", LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, "Init LayeredFs patches");
 
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);

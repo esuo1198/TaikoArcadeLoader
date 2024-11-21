@@ -40,10 +40,10 @@ Keybindings P1_LEFT_BLUE  = {.keycodes = {'D'}, .axis = {SDL_AXIS_LEFT_DOWN}};
 Keybindings P1_LEFT_RED   = {.keycodes = {'F'}, .axis = {SDL_AXIS_LEFT_RIGHT}};
 Keybindings P1_RIGHT_RED  = {.keycodes = {'J'}, .axis = {SDL_AXIS_RIGHT_RIGHT}};
 Keybindings P1_RIGHT_BLUE = {.keycodes = {'K'}, .axis = {SDL_AXIS_RIGHT_DOWN}};
-Keybindings P2_LEFT_BLUE  = {};
-Keybindings P2_LEFT_RED   = {};
-Keybindings P2_RIGHT_RED  = {};
-Keybindings P2_RIGHT_BLUE = {};
+Keybindings P2_LEFT_BLUE  = {.keycodes = {'Z'}};
+Keybindings P2_LEFT_RED   = {.keycodes = {'X'}};
+Keybindings P2_RIGHT_RED  = {.keycodes = {'C'}};
+Keybindings P2_RIGHT_BLUE = {.keycodes = {'V'}};
 
 bool testEnabled  = false;
 int coin_count    = 0;
@@ -253,6 +253,7 @@ HOOK (i32, bngrw_ReqLatchID, PROC_ADDRESS ("bngrw.dll", "BngRwReqLatchID")) { re
 HOOK (u64, bngrw_ReqAiccAuth, PROC_ADDRESS ("bngrw.dll", "BngRwReqAiccAuth")) { return 1; }
 HOOK (u64, bngrw_DevReset, PROC_ADDRESS ("bngrw.dll", "BngRwDevReset")) { return 1; }
 HOOK (u64, bngrw_Attach, PROC_ADDRESS ("bngrw.dll", "BngRwAttach"), i32 a1, char *a2, i32 a3, i32 a4, i32 (*callback) (i32, i32, i32 *), i32 *a6) {
+    LogMessage (LOG_LEVEL_DEBUG, "BngRwAttach");
     // This is way too fucking jank
     attachCallback = callback;
     attachData     = a6;
@@ -260,6 +261,7 @@ HOOK (u64, bngrw_Attach, PROC_ADDRESS ("bngrw.dll", "BngRwAttach"), i32 a1, char
 }
 HOOK (u64, bngrw_ReqWaitTouch, PROC_ADDRESS ("bngrw.dll", "BngRwReqWaitTouch"), u32 a1, i32 a2, u32 a3, void (*callback) (i32, i32, u8[168], u64),
       u64 a5) {
+    LogMessage (LOG_LEVEL_DEBUG, "BngRwReqWaitTouch");
     waitingForTouch = true;
     touchCallback   = callback;
     touchData       = a5;
@@ -282,9 +284,7 @@ Init () {
         if (controller) {
             drumWaitPeriod = readConfigInt (controller, "wait_period", drumWaitPeriod);
             analogInput    = readConfigBool (controller, "analog_input", analogInput);
-            if (analogInput)
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, "Using analog input mode. All the keyboard drum inputs have been disabled.",
-                            LOG_LEVEL_WARN);
+            if (analogInput) LogMessage (LOG_LEVEL_WARN, "Using analog input mode. All the keyboard drum inputs have been disabled.");
         }
     }
 
@@ -318,7 +318,7 @@ Init () {
 
     if (!emulateUsio && !std::filesystem::exists (std::filesystem::current_path () / "bnusio_original.dll")) {
         emulateUsio = true;
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "bnusio_original.dll not found! usio emulation enabled", LOG_LEVEL_ERROR);
+        LogMessage (LOG_LEVEL_ERROR, "bnusio_original.dll not found! usio emulation enabled");
     }
 
     if (!emulateUsio) {
@@ -368,7 +368,7 @@ Init () {
         INSTALL_HOOK_DIRECT (bnusio_DecService, bnusio_DecService_Original);
         INSTALL_HOOK_DIRECT (bnusio_ResetCoin, bnusio_ResetCoin_Original);
 
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "USIO emulation disabled", LOG_LEVEL_WARN);
+        LogMessage (LOG_LEVEL_WARN, "USIO emulation disabled");
     }
 
     if (emulateCardReader) {
@@ -394,7 +394,7 @@ Init () {
         INSTALL_HOOK (bngrw_Attach);
         INSTALL_HOOK (bngrw_DevReset);
     } else {
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "Card reader emulation disabled", LOG_LEVEL_WARN);
+        LogMessage (LOG_LEVEL_WARN, "Card reader emulation disabled");
     }
 }
 
@@ -446,7 +446,7 @@ Update () {
                 }
             }
             if (!hasInserted) {
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Inserting card for player 1: " + std::string (accessCode1)).c_str (), LOG_LEVEL_INFO);
+                LogMessage (LOG_LEVEL_INFO, ("Inserting card for player 1: " + std::string (accessCode1)).c_str ());
                 memcpy (cardData + 0x2C, chipId1, 33);
                 memcpy (cardData + 0x50, accessCode1, 21);
                 touchCallback (0, 0, cardData, touchData);
@@ -464,7 +464,7 @@ Update () {
                 }
             }
             if (!hasInserted) {
-                LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Inserting card for player 2: " + std::string (accessCode2)).c_str (), LOG_LEVEL_INFO);
+                LogMessage (LOG_LEVEL_INFO, ("Inserting card for player 2: " + std::string (accessCode2)).c_str ());
                 memcpy (cardData + 0x2C, chipId2, 33);
                 memcpy (cardData + 0x50, accessCode2, 21);
                 touchCallback (0, 0, cardData, touchData);

@@ -39,6 +39,7 @@ RefTestModeMain refTestMode = nullptr;
 
 pugi::xml_document &
 CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menuName, std::vector<std::wstring> items, std::wstring backId) {
+    LogMessage (LOG_LEVEL_DEBUG, L"Create Menu " + menuName);
     std::wstring menuBasicLine = L"<menu id=\"" + menuId + L"\"></menu>";
     if (menuMain.load_string (menuBasicLine.c_str ())) {
         pugi::xml_node menu       = menuMain.first_child ();
@@ -49,7 +50,7 @@ CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menu
         menuHeader.append_attribute (L"type") = L"Header";
         menuHeader.append_child (L"break-item");
         pugi::xml_node menuTitle              = menuHeader.append_child (L"text-item");
-        std::wstring menuNameFull             = L"   　　" + menuName;
+        std::wstring menuNameFull             = L"     " + menuName;
         menuTitle.append_attribute (L"label") = menuNameFull.c_str ();
         menuHeader.append_child (L"break-item");
         menuHeader.append_child (L"break-item");
@@ -64,15 +65,12 @@ CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menu
             pugi::xml_document menuItem;
             std::wstring itemLine = L"<root>" + item + L"</root>";
             if (menuItem.load_string (itemLine.c_str ())) menuCenter.append_copy (menuItem.first_child ().first_child ());
-            else
-                LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                            ("Failed to parse option line: " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (item)).c_str (),
-                            LOG_LEVEL_ERROR);
+            else LogMessage (LOG_LEVEL_ERROR, L"Failed to parse option line: " + item);
             menuCenter.append_child (L"break-item");
         }
         menuCenter.append_child (L"break-item");
         pugi::xml_node menuCenterExit              = menuCenter.append_child (L"menu-item");
-        menuCenterExit.append_attribute (L"label") = L"ＥＸＩＴ";
+        menuCenterExit.append_attribute (L"label") = L"EXIT";
         menuCenterExit.append_attribute (L"menu")  = backId.c_str ();
         // Mod Manager Menu Footer
         menuFooter.append_attribute (L"type")               = L"Footer";
@@ -107,11 +105,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
             fileName = ReadXMLFileSwitcher (fileName);
             pugi::xml_document doc;
             if (!doc.load_file (fileName.c_str ())) {
-                LogMessage (
-                    __FUNCTION__, __FILE__, __LINE__,
-                    ("Loading DeviceInitialize structure failed! path: " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (fileName))
-                        .c_str (),
-                    LOG_LEVEL_ERROR);
+                LogMessage (LOG_LEVEL_ERROR, L"Loading DeviceInitialize structure failed! path: " + fileName);
                 moddedInitial = fileName;
             } else {
                 std::wstring modFileName
@@ -120,7 +114,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                 pugi::xpath_query dongleQuery = pugi::xpath_query (L"/root/menu[@id='TopMenu']/layout[@type='Center']/select-item[@id='DongleItem']");
                 pugi::xml_node dongleItem     = doc.select_node (dongleQuery).node ();
                 pugi::xml_node talItem        = dongleItem.parent ().append_copy (dongleItem);
-                talItem.attribute (L"label").set_value (L"ＴＡＩＫＯＡＲＣＡＤＥＬＯＡＤＥＲ");
+                talItem.attribute (L"label").set_value (L"TAIKOARCADELOADER");
                 talItem.attribute (L"id").set_value (L"TaikoArcadeLoader");
                 talItem.append_attribute (L"default") = L"1";
                 dongleItem.parent ().append_child (L"break-item");
@@ -136,11 +130,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                 fileName = ReadXMLFileSwitcher (fileName);
                 pugi::xml_document doc;
                 if (!doc.load_file (fileName.c_str ())) {
-                    LogMessage (
-                        __FUNCTION__, __FILE__, __LINE__,
-                        ("Loading TestMode structure failed! path: " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (fileName))
-                            .c_str (),
-                        LOG_LEVEL_ERROR);
+                    LogMessage (LOG_LEVEL_ERROR, L"Loading TestMode structure failed! path: " + fileName);
                     modded = fileName;
                 } else {
                     std::wstring modFileName
@@ -152,7 +142,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                         pugi::xml_node menuItem                  = doc.select_node (menuQuery).node ();
                         menuItem                                 = menuItem.next_sibling ();
                         pugi::xml_node modMenuEntry              = menuItem.parent ().insert_child_after (L"menu-item", menuItem);
-                        modMenuEntry.append_attribute (L"label") = L"ＭＯＤ ＭＡＮＡＧＥＲ";
+                        modMenuEntry.append_attribute (L"label") = L"MOD MANAGER";
                         modMenuEntry.append_attribute (L"menu")  = L"ModManagerMenu";
                         menuItem.parent ().insert_child_after (L"break-item", modMenuEntry);
 
@@ -162,7 +152,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                             toInsertItems.push_back (item->selectItem);
                             item->registerInit ();
                         }
-                        CreateMenu (modMenu, L"ModManagerMenu", L"ＭＯＤ ＭＡＮＡＧＥＲ", toInsertItems, L"TopMenu");
+                        CreateMenu (modMenu, L"ModManagerMenu", L"MOD MANAGER", toInsertItems, L"TopMenu");
                         pugi::xpath_query topMenuQuery = pugi::xpath_query (L"/root/menu[@id='TopMenu']");
                         pugi::xml_node topMenu         = doc.select_node (topMenuQuery).node ();
                         topMenu.parent ().insert_copy_after (modMenu.first_child (), topMenu);
@@ -177,13 +167,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                                     modify->nodeModify (modifyNode);
                                     modify->registerInit ();
                                 }
-                            } catch (std::exception &e) {
-                                LogMessage (
-                                    __FUNCTION__, __FILE__, __LINE__,
-                                    ("Failed to find node by xpath: " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (modify->query))
-                                        .c_str (),
-                                    LOG_LEVEL_ERROR);
-                            }
+                            } catch (std::exception &e) { LogMessage (LOG_LEVEL_ERROR, L"Failed to find node by xpath: " + modify->query); }
                         }
                     }
 
@@ -195,8 +179,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
         } else fileName = modded;
     }
 
-    LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                ("TestModeLibrary load: " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (fileName)).c_str (), LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, L"TestModeLibrary load: " + fileName);
     originalTestModeSetMenuHook.call<void> (testModeLibrary, fileName.c_str ());
 }
 
@@ -304,7 +287,7 @@ LocalizationCHS () {
 
 void
 Init () {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Init TestMode patches", LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, "Init TestMode patches");
 
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
@@ -349,22 +332,19 @@ ReadTestModeValue (const wchar_t *itemId) {
             return value;
         }
     }
-    LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                ("Read TestMode(" + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (itemId) + ") failed!").c_str (), LOG_LEVEL_ERROR);
+    LogMessage (LOG_LEVEL_ERROR, (std::wstring (L"Read TestMode(") + itemId + L") failed!").c_str ());
     return -1;
 }
 
 void
 RegisterItem (const std::wstring item, const std::function<void ()> &initMethod) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Register Item " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (item)).c_str (),
-                LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, L"Register Item " + item);
     registeredItems.push_back (new RegisteredItem (item, initMethod));
 }
 
 void
 RegisterModify (const std::wstring query, const std::function<void (pugi::xml_node &)> &nodeModify, const std::function<void ()> &initMethod) {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__,
-                ("Register Modify " + std::wstring_convert<std::codecvt_utf8<wchar_t> > ().to_bytes (query)).c_str (), LOG_LEVEL_DEBUG);
+    LogMessage (LOG_LEVEL_DEBUG, L"Register Modify " + query);
     registeredModifies.push_back (new RegisteredModify (query, nodeModify, initMethod));
 }
 

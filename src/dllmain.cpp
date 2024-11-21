@@ -124,7 +124,7 @@ GetGameVersion () {
 
 void
 CreateCard () {
-    LogMessage (__FUNCTION__, __FILE__, __LINE__, "Creating card.ini", LOG_LEVEL_INFO);
+    LogMessage (LOG_LEVEL_INFO, "Creating card.ini");
     const char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     char buf[64]                   = {0};
     srand (time (nullptr));
@@ -147,7 +147,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
 
         // Init logger for loading config
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "Loading config...", LOG_LEVEL_INFO);
+        LogMessage (LOG_LEVEL_INFO, "Loading config...");
 
         std::string version = "auto";
         auto configPath     = std::filesystem::current_path () / "config.toml";
@@ -196,7 +196,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
 
         // Update the logger with the level read from config file.
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, "Application started.", LOG_LEVEL_INFO);
+        LogMessage (LOG_LEVEL_INFO, "Application started.");
 
         if (version == "auto") {
             GetGameVersion ();
@@ -209,11 +209,11 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         } else if (version == "CHN00") {
             gameVersion = GameVersion::CHN00;
         } else {
-            LogMessage (__FUNCTION__, __FILE__, __LINE__, "GameVersion is UNKNOWN!", LOG_LEVEL_ERROR);
+            LogMessage (LOG_LEVEL_ERROR, "GameVersion is UNKNOWN!");
             MessageBoxA (nullptr, "Unknown patch version", nullptr, MB_OK);
             ExitProcess (0);
         }
-        LogMessage (__FUNCTION__, __FILE__, __LINE__, (std::string ("GameVersion is ") + GameVersionToString (gameVersion)).c_str (), LOG_LEVEL_INFO);
+        LogMessage (LOG_LEVEL_INFO, "GameVersion is %s", GameVersionToString (gameVersion));
 
         auto pluginPath = std::filesystem::current_path () / "plugins";
 
@@ -221,16 +221,13 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
             for (const auto &entry : std::filesystem::directory_iterator (pluginPath)) {
                 if (entry.path ().extension () == ".dll") {
                     auto name       = entry.path ().wstring ();
+                    auto shortName  = entry.path ().filename ().wstring ();
                     HMODULE hModule = LoadLibraryW (name.c_str ());
                     if (!hModule) {
-                        auto pluginNameW = entry.path ().filename ().wstring ();           // Extract plugin filename
-                        std::string pluginName (pluginNameW.begin (), pluginNameW.end ()); // Convert to string
-                        LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Failed to load plugin " + pluginName).c_str (), LOG_LEVEL_ERROR);
+                        LogMessage (LOG_LEVEL_ERROR, L"Failed to load plugin " + shortName);
                     } else {
                         plugins.push_back (hModule);
-                        auto pluginNameW = entry.path ().filename ().wstring ();           // Extract plugin filename
-                        std::string pluginName (pluginNameW.begin (), pluginNameW.end ()); // Convert to string
-                        LogMessage (__FUNCTION__, __FILE__, __LINE__, ("Loaded plugin " + pluginName).c_str (), LOG_LEVEL_INFO);
+                        LogMessage (LOG_LEVEL_INFO, L"Loaded plugin " + shortName);
                     }
                 }
             }
