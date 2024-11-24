@@ -186,7 +186,6 @@ bnusio_GetAnalogIn (u8 which) {
 
 u16 __fastcall bnusio_GetCoin (i32 a1) { return coin_count; }
 u16 __fastcall bnusio_GetService (i32 a1) { return service_count; }
-}
 
 void
 InspectWaitTouch (i32 a1, i32 a2, u8 _cardData[168], u64 _touchData) {

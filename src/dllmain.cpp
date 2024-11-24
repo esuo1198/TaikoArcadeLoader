@@ -189,6 +189,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
                 autoIme  = readConfigBool (keyboard, "auto_ime", autoIme);
                 jpLayout = readConfigBool (keyboard, "jp_layout", jpLayout);
             }
+
             auto logging = openConfigSection (config, "logging");
             if (logging) {
                 logLevelStr = readConfigString (logging, "log_level", logLevelStr);

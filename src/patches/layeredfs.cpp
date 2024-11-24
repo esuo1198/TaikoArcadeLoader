@@ -3,6 +3,7 @@
 #include <zlib.h>
 
 bool useLayeredFs        = false;
+
 std::string datatableKey = "3530304242323633353537423431384139353134383346433246464231354534";
 std::string fumenKey     = "4434423946383537303842433443383030333843444132343339373531353830";
 
@@ -318,7 +319,6 @@ Init () {
         auto layeredFs = openConfigSection (config_ptr.get (), "layeredfs");
         if (layeredFs) useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
     }
-
     register_cipher (&aes_desc);
     INSTALL_HOOK (CreateFileAHook);
     // INSTALL_HOOK (CreateFileWHook);
