@@ -4,7 +4,7 @@
 #include <safetyhook.hpp>
 
 namespace patches::JPN39 {
-
+int language = 0;
 HOOK_DYNAMIC (char, AMFWTerminate, i64) {
     LogMessage (LOG_LEVEL_HOOKS, "AMFWTerminate was called");
     return 0;
@@ -188,13 +188,13 @@ HOOK (i64, GetLanguage, ASLR (0x140024AC0), i64 a1) {
 HOOK (i64, GetRegionLanguage, ASLR (0x1401CE9B0), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "GetRegionLanguage was called");
     lua_settop (a1, 0);
-    lua_pushstring (a1, languageStr ());
+    lua_pushstring (a1, languageStr (language));
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401D1A60), i64, i64 a2) {
     LogMessage (LOG_LEVEL_HOOKS, "GetCabinetLanguage was called");
     lua_settop (a2, 0);
-    lua_pushstring (a2, languageStr ());
+    lua_pushstring (a2, languageStr (language));
     return 1;
 }
 

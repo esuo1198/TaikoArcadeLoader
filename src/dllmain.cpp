@@ -150,8 +150,8 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
         LogMessage (LOG_LEVEL_INFO, "Loading config...");
 
-        std::string version = "auto";
-        auto configPath     = std::filesystem::current_path () / "config.toml";
+        std::string version              = "auto";
+        std::filesystem::path configPath = std::filesystem::current_path () / "config.toml";
         std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
         if (config_ptr) {
             toml_table_t *config = config_ptr.get ();

@@ -5,7 +5,7 @@
 extern std::string chassisId;
 
 namespace patches::CHN00 {
-
+int language = 0;
 u8 *haspBuffer;
 HOOK (i32, HaspDecrypt, PROC_ADDRESS ("hasp_windows_x64.dll", "hasp_decrypt")) { return 0; }
 HOOK (i32, HaspEncrypt, PROC_ADDRESS ("hasp_windows_x64.dll", "hasp_encrypt")) { return 0; }
@@ -57,13 +57,13 @@ HOOK (i64, GetLanguage, ASLR (0x140023720), i64 a1) {
 HOOK (i64, GetRegionLanguage, ASLR (0x1401AC300), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "GetRegionLanguage was called");
     lua_settop (a1, 0);
-    lua_pushstring (a1, (u64)languageStr ());
+    lua_pushstring (a1, (u64)languageStr (language));
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401AF270), i64, i64 a2) {
     LogMessage (LOG_LEVEL_HOOKS, "GetCabinetLanguage was called");
     lua_settop (a2, 0);
-    lua_pushstring (a2, (u64)languageStr ());
+    lua_pushstring (a2, (u64)languageStr (language));
     return 1;
 }
 

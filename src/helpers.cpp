@@ -1,8 +1,6 @@
 #include "helpers.h"
 #include <windows.h>
 
-void *consoleHandle = 0;
-
 static void
 toml_myfree (void *p) {
     if (p) {
@@ -48,7 +46,7 @@ toml_table_t *
 openConfigSection (toml_table_t *config, const std::string &sectionName) {
     toml_table_t *section = toml_table_in (config, sectionName.c_str ());
     if (!section) {
-        LogMessage (LOG_LEVEL_WARN, ("Cannot find section " + sectionName).c_str ());
+        LogMessage (LOG_LEVEL_ERROR, ("Cannot find section " + sectionName).c_str ());
         return 0;
     }
 
@@ -137,4 +135,39 @@ replace (const std::string orignStr, const std::string oldStr, const std::string
     }
 
     return tempStr;
+}
+
+const char *
+GameVersionToString (GameVersion version) {
+    switch (version) {
+    case GameVersion::JPN00: return "JPN00";
+    case GameVersion::JPN08: return "JPN08";
+    case GameVersion::JPN39: return "JPN39";
+    case GameVersion::CHN00: return "CHN00";
+    default: return "UNKNOWN";
+    }
+}
+
+const char *
+languageStr (int language) {
+    switch (language) {
+    case 1: return "en_us";
+    case 2: return "cn_tw";
+    case 3: return "kor";
+    case 4: return "cn_cn";
+    default: return "jpn";
+    }
+}
+
+std::string
+ConvertWideToUtf8 (const std::wstring &wstr) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t> > converter;
+    return converter.to_bytes (wstr);
+}
+
+bool
+AreAllBytesZero (const uint8_t *array, size_t offset, size_t length) {
+    for (size_t i = 0; i < length; ++i)
+        if (array[offset + i] != 0x00) return false;
+    return true;
 }
