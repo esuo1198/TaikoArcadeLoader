@@ -100,16 +100,16 @@ TaikoArcadeLoader offers several patches to select in TestMode
 
 The follow options are available in "MOD MANAGER" menu:
 
-- FREEZE TIMER (stop timer count down)
-- KIMETSU MODE (enable collabo024, will show a blank title)
-- ONE PIECE MODE (enable collabo025)
-- AI SOSHINA MODE (enable collabo026)
-- AOHARU MODE (enable aprilfool001)
-- INSTANT RESULT (send result per song)  
+* FREEZE TIMER (stop timer count down)
+* KIMETSU MODE (enable collabo024, will show a blank title)
+* ONE PIECE MODE (enable collabo025)
+* AI SOSHINA MODE (enable collabo026)
+* AOHARU MODE (enable aprilfool001)
+* INSTANT RESULT (send result per song)  
 
 Enhanced original option:
-- Louder volume (Speaker Volume is now up to 300%, **WARNING: May damage your speakers**)
 
+* Louder volume (Speaker Volume is now up to 300%, **WARNING: May damage your speakers**)
 
 ## Building
 
