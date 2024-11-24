@@ -219,3 +219,10 @@ ConvertWideToUtf8 (const std::wstring &wstr) {
     std::wstring_convert<std::codecvt_utf8<wchar_t> > converter;
     return converter.to_bytes (wstr);
 }
+
+bool
+AreAllBytesZero (const uint8_t *array, size_t offset, size_t length) {
+    for (size_t i = 0; i < length; ++i)
+        if (array[offset + i] != 0x00) return false;
+    return true;
+}

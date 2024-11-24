@@ -29,6 +29,7 @@ chs_patch = false           # Use Chinese font and Simplified Chinese values fro
 [emulation]
 usio = true                 # Disable this if you want to use an original Namco USIO board. you need to place bnusio_original.dll (unmodified bnusio.dll) in the executable folder.
 card_reader = true          # Disable this if you want to use an original Namco card reader
+accept_invalid = false      # Enable this if you want to accept cards incompatible with the original readers 
 qr = true                   # Disable this if you want to use an original Namco QR code scanner
 
 [graphics]

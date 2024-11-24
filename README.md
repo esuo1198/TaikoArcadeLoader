@@ -47,6 +47,7 @@ chs_patch = false           # Use Chinese font and Simplified Chinese values fro
 [emulation]
 usio = true                 # If usio emulation is disabled, you need to place bnusio_original.dll (unmodified bnusio.dll) in the executable folder.
 card_reader = true          # Disable this if you have an original namco card reader
+accept_invalid = false      # Enable this if you want to accept cards incompatible with the original readers 
 qr = true                   # Disable this if you have an original namco qr code scanner
 
 [graphics]
@@ -116,7 +117,7 @@ TaikoArcadeLoader can be a bit tricky to build if you've never done it before.
 Go to the TaikoArcadeLoader folder and run the following commands:
 
 ```bash
-apt install -y npm mingw-w64 ninja-build nasm pip 7zip cmake
+apt install -y npm mingw-w64 ninja-build nasm 7zip cmake python3-pip
 pip3 install meson
 
 npm install n -g && n latest && npm install --global xpm@latest
@@ -124,7 +125,7 @@ npx xpm init && npx xpm install @xpack-dev-tools/mingw-w64-gcc@latest
 
 # make sure you're in the TaikoArcadeLoader folder before running this
 export PATH=`pwd`/xpacks/.bin:$PATH
-make setup
+make clean-setup
 ```
 
 Once that's done, run `make` to build TAL.  

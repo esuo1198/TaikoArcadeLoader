@@ -29,6 +29,7 @@ bool useLayeredFs       = false;
 bool emulateUsio        = true;
 bool emulateCardReader  = true;
 bool emulateQr          = true;
+bool acceptInvalidCards = false;
 
 std::string logLevelStr = "INFO";
 bool logToFile          = true;
@@ -176,9 +177,10 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
             if (patches) version = readConfigString (patches, "version", version);
             auto emulation = openConfigSection (config, "emulation");
             if (emulation) {
-                emulateUsio       = readConfigBool (emulation, "usio", emulateUsio);
-                emulateCardReader = readConfigBool (emulation, "card_reader", emulateCardReader);
-                emulateQr         = readConfigBool (emulation, "qr", emulateQr);
+                emulateUsio        = readConfigBool (emulation, "usio", emulateUsio);
+                emulateCardReader  = readConfigBool (emulation, "card_reader", emulateCardReader);
+                acceptInvalidCards = readConfigBool (emulation, "accept_invalid", acceptInvalidCards);
+                emulateQr          = readConfigBool (emulation, "qr", emulateQr);
             }
             auto graphics = openConfigSection (config, "graphics");
             if (graphics) windowed = readConfigBool (graphics, "windowed", windowed);
