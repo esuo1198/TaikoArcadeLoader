@@ -48,6 +48,7 @@ ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *ne
 
 void
 Init () {
+    LogMessage (LOG_LEVEL_INFO, "Init JPN08 patches");
     i32 xRes         = 1920;
     i32 yRes         = 1080;
     bool vsync       = false;

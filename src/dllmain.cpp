@@ -43,13 +43,12 @@ HOOK (HWND, CreateWindow, PROC_ADDRESS ("user32.dll", "CreateWindowExW"), DWORD 
         if (wcscmp (lpWindowName, L"Taiko") == 0) {
             if (windowed) dwStyle = WS_TILEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME;
 
-            hGameWnd = originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu,
-                                                        hInstance, lpParam);
+            hGameWnd
+                = originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
             return hGameWnd;
         }
     }
-    return originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance,
-                                            lpParam);
+    return originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 }
 HOOK (bool, SetWindowPosition, PROC_ADDRESS ("user32.dll", "SetWindowPos"), HWND hWnd, HWND hWndInsertAfter, i32 X, i32 Y, i32 cx, i32 cy,
       u32 uFlags) {
@@ -241,6 +240,8 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         GetPrivateProfileStringA ("card", "chipId1", chipId1, chipId1, 33, ".\\card.ini");
         GetPrivateProfileStringA ("card", "accessCode2", accessCode2, accessCode2, 21, ".\\card.ini");
         GetPrivateProfileStringA ("card", "chipId2", chipId2, chipId2, 33, ".\\card.ini");
+
+        LogMessage (LOG_LEVEL_WARN, "Loading patches, please wait...");
 
         INSTALL_HOOK (ShowMouse);
         INSTALL_HOOK (ExitWindows);

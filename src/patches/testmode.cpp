@@ -287,7 +287,7 @@ LocalizationCHS () {
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_DEBUG, "Init TestMode patches");
+    LogMessage (LOG_LEVEL_INFO, "Init TestMode patches");
 
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);

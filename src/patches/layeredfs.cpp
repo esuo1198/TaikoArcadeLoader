@@ -311,7 +311,7 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_DEBUG, "Init LayeredFs patches");
+    LogMessage (LOG_LEVEL_INFO, "Init LayeredFs patches");
 
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);

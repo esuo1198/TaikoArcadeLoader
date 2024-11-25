@@ -559,7 +559,7 @@ CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsC
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_DEBUG, "Init AmAuth patches");
+    LogMessage (LOG_LEVEL_INFO, "Init AmAuth patches");
 
     MH_Initialize ();
     MH_CreateHookApi (L"ole32.dll", "CoCreateInstance", (LPVOID)CoCreateInstanceHook,

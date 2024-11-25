@@ -231,7 +231,7 @@ Update () {
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_DEBUG, "Init Qr patches");
+    LogMessage (LOG_LEVEL_INFO, "Init Qr patches");
 
     if (!emulateQr) {
         LogMessage (LOG_LEVEL_WARN, "QR emulation disabled");

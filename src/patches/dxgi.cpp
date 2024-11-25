@@ -201,7 +201,7 @@ D3D11CreateDeviceAndSwapChainWrap (IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE Drive
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_DEBUG, "Init Dxgi patches");
+    LogMessage (LOG_LEVEL_INFO, "Init Dxgi patches");
     i32 fpsLimit = 120;
 
     auto configPath = std::filesystem::current_path () / "config.toml";
