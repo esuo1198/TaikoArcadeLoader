@@ -297,7 +297,7 @@ HOOK (u64, bngrw_ReqWaitTouch, PROC_ADDRESS ("bngrw.dll", "BngRwReqWaitTouch"), 
         return 1;
     } else {
         // This is called when we use an original card reader and acceptInvalidCards is set to true
-        return originalbngrw_ReqWaitTouch.call<u64> (a1, a2, a3, InspectWaitTouch, _touchData);
+        return originalbngrw_ReqWaitTouch (a1, a2, a3, InspectWaitTouch, _touchData);
     }
 }
 

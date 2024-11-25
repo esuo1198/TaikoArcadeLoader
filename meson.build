@@ -28,6 +28,7 @@ add_project_link_arguments(
 	language: 'cpp',
 )
 
+minhook = subproject('minhook')
 tomlc99 = subproject('tomlc99')
 sdl2 = subproject('sdl2', default_options: ['default_library=static', 'test=false', 'use_render=disabled'])
 xxhash = subproject('xxhash', default_options: ['default_library=static', 'cli=false'])
@@ -52,6 +53,7 @@ pugixml_dep = pugixml.get_variable('pugixml_static_dep')
 library(
 	'bnusio',
 	link_with: [
+		minhook.get_variable('minhook_lib'),
 		tomlc99.get_variable('tomlc99_lib'),
 		sdl2.get_variable('sdl2'),
 		xxhash.get_variable('xxhash'),
@@ -61,6 +63,7 @@ library(
 	link_args : '-Wl,--allow-multiple-definition',
 	include_directories: [
 		'src',
+		minhook.get_variable('minhook_inc'),
 		tomlc99.get_variable('tomlc99_inc'),
 		sdl2.get_variable('core_inc'),
 		xxhash.get_variable('inc'),

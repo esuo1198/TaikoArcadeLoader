@@ -35,7 +35,7 @@ std::string logLevelStr = "INFO";
 bool logToFile          = true;
 
 HWND hGameWnd;
-HOOK (i32, ShowMouse, PROC_ADDRESS ("user32.dll", "ShowCursor"), bool) { return originalShowMouse.call<i32> (true); }
+HOOK (i32, ShowMouse, PROC_ADDRESS ("user32.dll", "ShowCursor"), bool) { return originalShowMouse (true); }
 HOOK (i32, ExitWindows, PROC_ADDRESS ("user32.dll", "ExitWindowsEx")) { ExitProcess (0); }
 HOOK (HWND, CreateWindow, PROC_ADDRESS ("user32.dll", "CreateWindowExW"), DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle,
       i32 X, i32 Y, i32 nWidth, i32 nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam) {
@@ -43,12 +43,12 @@ HOOK (HWND, CreateWindow, PROC_ADDRESS ("user32.dll", "CreateWindowExW"), DWORD 
         if (wcscmp (lpWindowName, L"Taiko") == 0) {
             if (windowed) dwStyle = WS_TILEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME;
 
-            hGameWnd = originalCreateWindow.call<HWND> (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu,
+            hGameWnd = originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu,
                                                         hInstance, lpParam);
             return hGameWnd;
         }
     }
-    return originalCreateWindow.call<HWND> (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance,
+    return originalCreateWindow (dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance,
                                             lpParam);
 }
 HOOK (bool, SetWindowPosition, PROC_ADDRESS ("user32.dll", "SetWindowPos"), HWND hWnd, HWND hWndInsertAfter, i32 X, i32 Y, i32 cx, i32 cy,
@@ -60,12 +60,12 @@ HOOK (bool, SetWindowPosition, PROC_ADDRESS ("user32.dll", "SetWindowPos"), HWND
         cx = (rw.right - rw.left) - (rc.right - rc.left) + cx;
         cy = (rw.bottom - rw.top) - (rc.bottom - rc.top) + cy;
     }
-    return originalSetWindowPosition.call<bool> (hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
+    return originalSetWindowPosition (hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 }
 
 HOOK (void, ExitProcessHook, PROC_ADDRESS ("kernel32.dll", "ExitProcess"), u32 uExitCode) {
     bnusio::Close ();
-    originalExitProcessHook.call<void> (uExitCode);
+    originalExitProcessHook (uExitCode);
 }
 
 HOOK (i32, XinputGetState, PROC_ADDRESS ("xinput9_1_0.dll", "XInputGetState")) { return ERROR_DEVICE_NOT_CONNECTED; }
@@ -82,7 +82,7 @@ HOOK (i64, UsbFinderGetSerialNumber, PROC_ADDRESS ("nbamUsbFinder.dll", "nbamUsb
 }
 
 HOOK (i32, ws2_getaddrinfo, PROC_ADDRESS ("ws2_32.dll", "getaddrinfo"), const char *node, char *service, void *hints, void *out) {
-    return originalws2_getaddrinfo.call<i32> (server.c_str (), service, hints, out);
+    return originalws2_getaddrinfo (server.c_str (), service, hints, out);
 }
 
 void

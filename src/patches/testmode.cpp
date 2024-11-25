@@ -180,7 +180,7 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
     }
 
     LogMessage (LOG_LEVEL_DEBUG, L"TestModeLibrary load: " + fileName);
-    originalTestModeSetMenuHook.call<void> (testModeLibrary, fileName.c_str ());
+    originalTestModeSetMenuHook (testModeLibrary, fileName.c_str ());
 }
 
 void

@@ -50,7 +50,7 @@ HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402BC9B0), i64 a1) {
 
 HOOK (i64, GetLanguage, ASLR (0x140023720), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "GetLanguage was called");
-    auto result = originalGetLanguage.call<i64> (a1);
+    auto result = originalGetLanguage (a1);
     language    = *((u32 *)result);
     return result;
 }

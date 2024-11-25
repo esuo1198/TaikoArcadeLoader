@@ -10,7 +10,7 @@
 #include "dxgi1_5.h"
 #include "dxgi1_6.h"
 #include "helpers.h"
-#include <safetyhook.hpp>
+#include <MinHook.h>
 
 #include "bnusio.h"
 #include "patches.h"
@@ -21,10 +21,6 @@
  */
 
 namespace patches::Dxgi {
-
-SafetyHookInline g_origCreateDXGIFactory{};
-SafetyHookInline g_origCreateDXGIFactory2{};
-SafetyHookInline g_origD3D11CreateDeviceAndSwapChain{};
 
 // Local variables
 static bool FpsLimiterEnable = false;
@@ -40,6 +36,13 @@ static HRESULT (STDMETHODCALLTYPE *g_oldPresentWrap) (IDXGISwapChain *pSwapChain
 static HRESULT (STDMETHODCALLTYPE *g_oldPresent1Wrap) (IDXGISwapChain1 *pSwapChain, UINT SyncInterval, UINT Flags);
 static HRESULT (STDMETHODCALLTYPE *g_oldCreateSwapChain2) (IDXGIFactory2 *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
                                                            IDXGISwapChain **ppSwapChain);
+static HRESULT (WINAPI *g_origCreateDXGIFactory2) (UINT Flags, REFIID riid, void **ppFactory);
+static HRESULT (WINAPI *g_origCreateDXGIFactory) (REFIID, void **);
+static HRESULT (WINAPI *g_origD3D11CreateDeviceAndSwapChain) (IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+                                                              const D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
+                                                              /*const*/ DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain,
+                                                              ID3D11Device **ppDevice, D3D_FEATURE_LEVEL *pFeatureLevel,
+                                                              ID3D11DeviceContext **ppImmediateContext);
 
 static HRESULT STDMETHODCALLTYPE CreateSwapChainWrap (IDXGIFactory *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
                                                       IDXGISwapChain **ppSwapChain);
@@ -133,7 +136,7 @@ CreateSwapChain2Wrap (IDXGIFactory2 *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DE
 
 static HRESULT WINAPI
 CreateDXGIFactory2Wrap (UINT Flags, REFIID riid, void **ppFactory) {
-    HRESULT hr = g_origCreateDXGIFactory2.call<HRESULT> (Flags, riid, ppFactory);
+    HRESULT hr = g_origCreateDXGIFactory2 (Flags, riid, ppFactory);
 
     if (SUCCEEDED (hr)) {
         IDXGIFactory2 *factory = (IDXGIFactory2 *)*ppFactory;
@@ -147,7 +150,7 @@ CreateDXGIFactory2Wrap (UINT Flags, REFIID riid, void **ppFactory) {
 
 static HRESULT WINAPI
 CreateDXGIFactoryWrap (REFIID riid, _COM_Outptr_ void **ppFactory) {
-    HRESULT hr = g_origCreateDXGIFactory.call<HRESULT> (riid, ppFactory);
+    HRESULT hr = g_origCreateDXGIFactory (riid, ppFactory);
 
     if (SUCCEEDED (hr)) {
         int factoryType = 0;
@@ -183,8 +186,8 @@ D3D11CreateDeviceAndSwapChainWrap (IDXGIAdapter *pAdapter, D3D_DRIVER_TYPE Drive
                                    const D3D_FEATURE_LEVEL *pFeatureLevels, UINT FeatureLevels, UINT SDKVersion,
                                    /*const*/ DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain, ID3D11Device **ppDevice,
                                    D3D_FEATURE_LEVEL *pFeatureLevel, ID3D11DeviceContext **ppImmediateContext) {
-    HRESULT hr = g_origD3D11CreateDeviceAndSwapChain.call<HRESULT> (pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-                                                                    pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+    HRESULT hr = g_origD3D11CreateDeviceAndSwapChain (pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
+                                                      pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
     if (ppSwapChain) {
         if (FpsLimiterEnable) {
@@ -211,10 +214,12 @@ Init () {
     FpsLimiterEnable = fpsLimit > 0;
     patches::FpsLimiter::Init ((float)fpsLimit);
 
-    g_origCreateDXGIFactory  = safetyhook::create_inline (PROC_ADDRESS ("dxgi.dll", "CreateDXGIFactory"), CreateDXGIFactoryWrap);
-    g_origCreateDXGIFactory2 = safetyhook::create_inline (PROC_ADDRESS ("dxgi.dll", "CreateDXGIFactory2"), CreateDXGIFactory2Wrap);
-    g_origD3D11CreateDeviceAndSwapChain
-        = safetyhook::create_inline (PROC_ADDRESS ("d3d11.dll", "D3D11CreateDeviceAndSwapChain"), D3D11CreateDeviceAndSwapChainWrap);
+    MH_Initialize ();
+    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory", (LPVOID)CreateDXGIFactoryWrap, (void **)&g_origCreateDXGIFactory);
+    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory2", (LPVOID)CreateDXGIFactory2Wrap, (void **)&g_origCreateDXGIFactory2);
+    MH_CreateHookApi (L"d3d11.dll", "D3D11CreateDeviceAndSwapChain", (LPVOID)D3D11CreateDeviceAndSwapChainWrap,
+                      (void **)&g_origD3D11CreateDeviceAndSwapChain);
+    MH_EnableHook (MH_ALL_HOOKS);
 }
 
 } // namespace patches::Dxgi

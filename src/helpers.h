@@ -4,6 +4,7 @@
 #include <map>
 #include <mutex>
 #include <safetyhook.hpp>
+#include <MinHook.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -36,35 +37,41 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 #define ASLR(address) ((u64)MODULE_HANDLE + (u64)address - (u64)BASE_ADDRESS)
 #endif
 
-#define HOOK(returnType, functionName, location, ...) \
-    SafetyHookInline original##functionName{};        \
-    void *where##functionName = (void *)location;     \
+#define HOOK(returnType, functionName, location, ...)         \
+    typedef returnType (*functionName) (__VA_ARGS__);         \
+    functionName original##functionName = NULL;               \
+    void *where##functionName           = (void *)(location); \
     returnType implOf##functionName (__VA_ARGS__)
 
-#define HOOK_DYNAMIC(returnType, functionName, ...) \
-    SafetyHookInline original##functionName{};      \
-    void *where##functionName = NULL;               \
+#define HOOK_DYNAMIC(returnType, functionName, ...)   \
+    typedef returnType (*functionName) (__VA_ARGS__); \
+    functionName original##functionName = NULL;       \
+    void *where##functionName           = NULL;       \
     returnType implOf##functionName (__VA_ARGS__)
 
-#define VTABLE_HOOK(returnType, className, functionName, ...) \
-    SafetyHookInline original##className##functionName{};     \
-    void *where##className##functionName = NULL;              \
+#define VTABLE_HOOK(returnType, className, functionName, ...)                      \
+    typedef returnType (*className##functionName) (className * This, __VA_ARGS__); \
+    className##functionName original##className##functionName = NULL;              \
+    void *where##className##functionName                      = NULL;              \
     returnType implOf##className##functionName (className *This, __VA_ARGS__)
 
-#define MID_HOOK(functionName, location, ...)     \
-    SafetyHookMid midHook##functionName{};        \
-    void *where##functionName = (void *)location; \
+#define MID_HOOK(functionName, location, ...)   \
+    typedef void (*functionName) (__VA_ARGS__); \
+    SafetyHookMid midHook##functionName{};      \
+    u64 where##functionName = (location);       \
     void implOf##functionName (SafetyHookContext &ctx)
 
-#define MID_HOOK_DYNAMIC(functionName, ...) \
-    SafetyHookMid midHook##functionName{};  \
-    void *where##functionName = NULL;       \
+#define MID_HOOK_DYNAMIC(functionName, ...)           \
+    typedef void (*functionName) (__VA_ARGS__);       \
+    std::map<u64, SafetyHookMid> mapOf##functionName; \
     void implOf##functionName (SafetyHookContext &ctx)
 
-#define INSTALL_HOOK(functionName)                                                                      \
-    {                                                                                                   \
-        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing hook for ") + #functionName).c_str ());  \
-        original##functionName = safetyhook::create_inline (where##functionName, implOf##functionName); \
+#define INSTALL_HOOK(functionName)                                                                                     \
+    {                                                                                                                  \
+        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing hook for ") + #functionName).c_str ());                 \
+        MH_Initialize ();                                                                                              \
+        MH_CreateHook ((void *)where##functionName, (void *)implOf##functionName, (void **)(&original##functionName)); \
+        MH_EnableHook ((void *)where##functionName);                                                                   \
     }
 
 #define INSTALL_HOOK_DYNAMIC(functionName, location) \
@@ -76,7 +83,9 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 #define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                     \
     {                                                                                                     \
         LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing direct hook for ") + #location).c_str ()); \
-        directHooks.push_back (safetyhook::create_inline ((void *)location, (void *)locationOfHook));     \
+        MH_Initialize ();                                                                                 \
+        MH_CreateHook ((void *)(location), (void *)(locationOfHook), NULL);                               \
+        MH_EnableHook ((void *)(location));                                                               \
     }
 
 #define INSTALL_VTABLE_HOOK(className, object, functionName, functionIndex)                     \
@@ -92,32 +101,29 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
     }
 
 #define INSTALL_MID_HOOK_DYNAMIC(functionName, location) \
-    {                                                    \
-        where##functionName = (void *)location;          \
-        INSTALL_MID_HOOK (functionName);                 \
-    }
+    { mapOf##functionName[location] = safetyhook::create_mid (location, implOf##functionName); }
 
 bool sendFlag = false;
 #define SCENE_RESULT_HOOK(functionName, location)                                                                                \
     HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) {                                                                \
         if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { \
-            original##functionName.call (a1, a2, a3);                                                                            \
+            original##functionName (a1, a2, a3);                                                                                 \
             return;                                                                                                              \
         }                                                                                                                        \
         sendFlag = true;                                                                                                         \
-        original##functionName.call (a1, a2, a3);                                                                                \
+        original##functionName (a1, a2, a3);                                                                                     \
         ExecuteSendResultData ();                                                                                                \
     }
 
 #define SEND_RESULT_HOOK(functionName, location)                                                                                 \
     HOOK (void, functionName, location, i64 a1) {                                                                                \
         if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { \
-            original##functionName.call (a1);                                                                                    \
+            original##functionName (a1);                                                                                         \
             return;                                                                                                              \
         }                                                                                                                        \
         if (sendFlag) {                                                                                                          \
             sendFlag = false;                                                                                                    \
-            original##functionName.call (a1);                                                                                    \
+            original##functionName (a1);                                                                                         \
         }                                                                                                                        \
     }
 
@@ -189,7 +195,6 @@ const std::string readConfigString (toml_table_t *table, const std::string &key,
 std::vector<int64_t> readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
 std::wstring replace (const std::wstring orignStr, const std::wstring oldStr, const std::wstring newStr);
 std::string replace (const std::string orignStr, const std::string oldStr, const std::string newStr);
-std::vector<SafetyHookInline> directHooks = {};
 const char *GameVersionToString (GameVersion version);
 const char *languageStr (int language);
 std::string ConvertWideToUtf8 (const std::wstring &wstr);

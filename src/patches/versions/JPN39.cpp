@@ -12,15 +12,15 @@ HOOK_DYNAMIC (char, AMFWTerminate, i64) {
 
 HOOK_DYNAMIC (i64, curl_easy_setopt, i64 a1, i64 a2, i64 a3, i64 a4, i64 a5) {
     LogMessage (LOG_LEVEL_HOOKS, "Garmc curl_easy_setopt was called");
-    originalcurl_easy_setopt.call<i64> (a1, 64, 0, 0, 0);
-    originalcurl_easy_setopt.call<i64> (a1, 81, 0, 0, 0);
-    return originalcurl_easy_setopt.call<i64> (a1, a2, a3, a4, a5);
+    originalcurl_easy_setopt (a1, 64, 0, 0, 0);
+    originalcurl_easy_setopt (a1, 81, 0, 0, 0);
+    return originalcurl_easy_setopt (a1, a2, a3, a4, a5);
 }
 
 FUNCTION_PTR (i64, GetPlayDataManagerRef, ASLR (0x140024AC0), i64);
 
 i64 lua_State = 0;
-HOOK (i64, luaL_newstate, PROC_ADDRESS ("lua51.dll", "luaL_newstate")) { return lua_State = originalluaL_newstate.call<i64> (); }
+HOOK (i64, luaL_newstate, PROC_ADDRESS ("lua51.dll", "luaL_newstate")) { return lua_State = originalluaL_newstate (); }
 FUNCTION_PTR (void, lua_settop, PROC_ADDRESS ("lua51.dll", "lua_settop"), i64, i32);
 FUNCTION_PTR (void, lua_replace, PROC_ADDRESS ("lua51.dll", "lua_replace"), i64, i32);
 FUNCTION_PTR (void, lua_pushcclosure, PROC_ADDRESS ("lua51.dll", "lua_pushcclosure"), i64, i64, i32);
@@ -50,7 +50,7 @@ HOOK (i64, DeviceCheck, ASLR (0x140464FC0), i64 a1, i64 a2, i64 a3) {
     LogMessage (LOG_LEVEL_HOOKS, "DeviceCheck was called");
     TestMode::SetupAccessor (a3, RefTestModeMain);
     componentAccessor = a2;
-    return originalDeviceCheck.call<i64> (a1, a2, a3);
+    return originalDeviceCheck (a1, a2, a3);
 }
 
 int
@@ -65,34 +65,34 @@ GetUserStatus () {
 HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo024 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
-    if (tournamentMode == 1) return originalAvailableMode_Collabo024.call<i64> (a1);
+    if (tournamentMode == 1) return originalAvailableMode_Collabo024 (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo024");
     if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
-    return originalAvailableMode_Collabo024.call<i64> (a1);
+    return originalAvailableMode_Collabo024 (a1);
 }
 HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402DE6B0), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo025 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
-    if (tournamentMode == 1) return originalAvailableMode_Collabo025.call<i64> (a1);
+    if (tournamentMode == 1) return originalAvailableMode_Collabo025 (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo025");
     if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
-    return originalAvailableMode_Collabo025.call<i64> (a1);
+    return originalAvailableMode_Collabo025 (a1);
 }
 HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402DE670), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo026 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
-    if (tournamentMode == 1) return originalAvailableMode_Collabo026.call<i64> (a1);
+    if (tournamentMode == 1) return originalAvailableMode_Collabo026 (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeCollabo026");
     if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
-    return originalAvailableMode_Collabo026.call<i64> (a1);
+    return originalAvailableMode_Collabo026 (a1);
 }
 HOOK (i64, AvailableMode_AprilFool001, ASLR (0x1402DE5B0), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_AprilFool001 was called");
     int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode");
-    if (tournamentMode == 1) return originalAvailableMode_AprilFool001.call<i64> (a1);
+    if (tournamentMode == 1) return originalAvailableMode_AprilFool001 (a1);
     int status = TestMode::ReadTestModeValue (L"ModModeAprilFool001");
     if (status == 1) return lua_pushbool (a1, true);
-    return originalAvailableMode_AprilFool001.call<i64> (a1);
+    return originalAvailableMode_AprilFool001 (a1);
 }
 i64 __fastcall lua_freeze_timer (i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "lua_freeze_timer was called");
@@ -172,7 +172,7 @@ CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_Enso, ASLR (0x140180074), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_AI, ASLR (0x140173774), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_Collabo025_026, ASLR (0x140178244), rax);
 CHANGE_RESULT_SIZE_HOOK (ChangeResultDataSize_AprilFool, ASLR (0x140176044), rax);
-  
+
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_Enso, ASLR (0x14018074B), rax, 0x34, 0x07);
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AI, ASLR (0x140173EDD), r13, 0x24, 0x08);
 CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_Collabo025_026, ASLR (0x1401789AD), r13, 0x24, 0x08);
@@ -180,7 +180,7 @@ CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AprilFool, ASLR (0x140176716), r
 
 HOOK (i64, GetLanguage, ASLR (0x140024AC0), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "GetLanguage was called");
-    auto result = originalGetLanguage.call<i64> (a1);
+    auto result = originalGetLanguage (a1);
     language    = *((u32 *)result);
     return result;
 }
@@ -291,7 +291,7 @@ HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
             lua_replace (a1, -3);
         }
     }
-    return originalPlaySound.call<i64> (a1);
+    return originalPlaySound (a1);
 }
 
 HOOK (i64, PlaySoundMulti, ASLR (0x1404C6D60), i64 a1) {
@@ -303,7 +303,7 @@ HOOK (i64, PlaySoundMulti, ASLR (0x1404C6D60), i64 a1) {
             lua_replace (a1, -3);
         }
     }
-    return originalPlaySoundMulti.call<i64> (a1);
+    return originalPlaySoundMulti (a1);
 }
 
 FUNCTION_PTR (u64 *, append_chars_to_basic_string, ASLR (0x140028DA0), u64 *, const char *, size_t);
@@ -322,7 +322,7 @@ HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
     }
-    return originalPlaySoundEnso.call<bool> (a1, a2, a3);
+    return originalPlaySoundEnso (a1, a2, a3);
 }
 
 HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
@@ -331,13 +331,13 @@ HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
         std::string bankName = a1[3] > 0x10 ? std::string (*((char **)a1)) : std::string ((char *)a1);
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
     }
-    return originalPlaySoundSpecial.call<bool> (a1, a2);
+    return originalPlaySoundSpecial (a1, a2);
 }
 
 int loaded_fail_count = 0;
 HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "LoadedBankAll was called");
-    originalLoadedBankAll.call<i64> (a1);
+    originalLoadedBankAll (a1);
     auto result = lua_toboolean (a1, -1);
     lua_settop (a1, 0);
     if (result) {
@@ -357,12 +357,12 @@ float soundRate = 1.0F;
 HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
     LogMessage (LOG_LEVEL_HOOKS, "SetMasterVolumeSpeaker was called");
     soundRate = a1 <= 100 ? 1.0F : a1 / 100.0;
-    return originalSetMasterVolumeSpeaker.call<i32> (a1 > 100 ? 100 : a1);
+    return originalSetMasterVolumeSpeaker (a1 > 100 ? 100 : a1);
 }
 
 HOOK (u64, NuscBusVolume, ASLR (0x1407B1C30), u64 a1, u64 a2, float a3) {
     LogMessage (LOG_LEVEL_HOOKS, "NuscBusVolume was called");
-    return originalNuscBusVolume.call<u64> (a1, a2, a3 * soundRate);
+    return originalNuscBusVolume (a1, a2, a3 * soundRate);
 }
 
 std::string *fontName = nullptr;
@@ -370,13 +370,13 @@ HOOK (u8, SetupFontInfo, ASLR (0x14049D820), u64 a1, u64 a2, size_t a3, u64 a4) 
     LogMessage (LOG_LEVEL_HOOKS, "SetupFontInfo was called");
     if (fontName != nullptr) delete fontName;
     fontName = new std::string (((char *)a1) + 120);
-    return originalSetupFontInfo.call<u8> (a1, a2, a3, a4);
+    return originalSetupFontInfo (a1, a2, a3, a4);
 }
 
 HOOK (u32, ReadFontInfoInt, ASLR (0x14049EAC0), u64 a1, u64 a2) {
     LogMessage (LOG_LEVEL_HOOKS, "ReadFontInfoInt was called");
     std::string attribute ((char *)a2);
-    u32 result = originalReadFontInfoInt.call<u32> (a1, a2);
+    u32 result = originalReadFontInfoInt (a1, a2);
     if (fontName->starts_with ("cn_") && attribute == "offsetV") result += 1;
     return result;
 }

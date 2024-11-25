@@ -1,7 +1,7 @@
 #include "helpers.h"
 #include <bits/stdc++.h>
 #include <format>
-#include <safetyhook.hpp>
+#include <MinHook.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -533,7 +533,8 @@ public:
     virtual HRESULT LockServer (int32_t lock) { return 0; }
 };
 
-SafetyHookInline g_origCoCreateInstance{};
+static HRESULT (STDAPICALLTYPE *g_origCoCreateInstance) (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, const IID *const riid,
+                                                         LPVOID *ppv);
 
 static HRESULT STDAPICALLTYPE
 CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, const IID *const riid, LPVOID *ppv) {
@@ -548,7 +549,7 @@ CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsC
         auto cauth = new CAuth ();
         result     = cauth->QueryInterface (*riid, ppv);
     } else {
-        result = g_origCoCreateInstance.call<HRESULT> (rclsid, pUnkOuter, dwClsContext, riid, ppv);
+        result = g_origCoCreateInstance (rclsid, pUnkOuter, dwClsContext, riid, ppv);
     }
 
     CoTaskMemFree (clsidStr);
@@ -560,7 +561,10 @@ void
 Init () {
     LogMessage (LOG_LEVEL_DEBUG, "Init AmAuth patches");
 
-    g_origCoCreateInstance = safetyhook::create_inline (PROC_ADDRESS ("ole32.dll", "CoCreateInstance"), CoCreateInstanceHook);
+    MH_Initialize ();
+    MH_CreateHookApi (L"ole32.dll", "CoCreateInstance", (LPVOID)CoCreateInstanceHook,
+                      (void **)&g_origCoCreateInstance); // NOLINT(clang-diagnostic-microsoft-cast)
+    MH_EnableHook (nullptr);
 
     struct addrinfo *res = 0;
     getaddrinfo (server.c_str (), "", 0, &res);

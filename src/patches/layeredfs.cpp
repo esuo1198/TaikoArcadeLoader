@@ -2,7 +2,7 @@
 #include <tomcrypt.h>
 #include <zlib.h>
 
-bool useLayeredFs        = false;
+bool useLayeredFs = false;
 
 std::string datatableKey = "3530304242323633353537423431384139353134383346433246464231354534";
 std::string fumenKey     = "4434423946383537303842433443383030333843444132343339373531353830";
@@ -278,8 +278,8 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
         }
     }
 
-    return originalCreateFileAHook.call<HANDLE> (currentFileName.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-                                                 dwFlagsAndAttributes, hTemplateFile);
+    return originalCreateFileAHook (currentFileName.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition,
+                                    dwFlagsAndAttributes, hTemplateFile);
 }
 
 // HOOK (HANDLE, CreateFileWHook, PROC_ADDRESS ("kernel32.dll", "CreateFileW"), LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,

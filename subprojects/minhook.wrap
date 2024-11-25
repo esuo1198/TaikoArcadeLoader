@@ -1,0 +1,4 @@
+[wrap-git]
+url = https://github.com/TsudaKageyu/minhook.git
+revision = master
+diff_files = minhook.patch
