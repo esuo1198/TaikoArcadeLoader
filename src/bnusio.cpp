@@ -475,7 +475,8 @@ Update () {
                 insertEvent = GetProcAddress (plugin, p1 ? "Card1Insert" : "Card2Insert");
                 if (insertEvent) {
                     ((event *)insertEvent) ();
-                    hasInserted = true;
+                    hasInserted     = true;
+                    waitingForTouch = false;
                     break;
                 }
             }
@@ -485,6 +486,7 @@ Update () {
                 memcpy (cardData + 0x2C, p1 ? chipId1 : chipId2, 33);
                 memcpy (cardData + 0x50, p1 ? accessCode1 : accessCode2, 21);
                 touchCallback (0, 0, cardData, touchData);
+                waitingForTouch = false;
             }
         }
     }
