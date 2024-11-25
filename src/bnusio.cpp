@@ -481,7 +481,7 @@ Update () {
             }
 
             if (!hasInserted) {
-                LogMessage (LOG_LEVEL_INFO, "Inserting card for player %d: %s", p1 ? "1" : "2", p1 ? accessCode1 : accessCode2);
+                LogMessage (LOG_LEVEL_INFO, "Inserting card for player %d: %s", p1 ? 1 : 2, p1 ? accessCode1 : accessCode2);
                 memcpy (cardData + 0x2C, p1 ? chipId1 : chipId2, 33);
                 memcpy (cardData + 0x50, p1 ? accessCode1 : accessCode2, 21);
                 touchCallback (0, 0, cardData, touchData);
