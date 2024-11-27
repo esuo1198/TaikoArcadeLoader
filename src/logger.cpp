@@ -25,9 +25,6 @@ time_t rawTime;
 tm *timeInfo;
 SYSTEMTIME systemTime;
 
-/*static std::unique_ptr<plog::RollingFileAppender<plog::TxtFormatter>> fileAppender;
-static std::unique_ptr<plog::ConsoleAppender<plog::TxtFormatter>> consoleAppender;*/
-
 void
 InitializeLogger (const LogLevel level, const bool logToFile) {
     if (loggerInstance == nullptr) {
@@ -41,13 +38,6 @@ InitializeLogger (const LogLevel level, const bool logToFile) {
         loggerInstance->logFile = fopen ("TaikoArcadeLoader.log", "w"); // Open in write mode
         if (!loggerInstance->logFile) LogMessage (LogLevel::WARN, std::string ("Failed to open TaikoArcadeLoader.log for writing."));
     } else loggerInstance->logFile = nullptr; // No file logging
-
-    /*consoleAppender = std::make_unique<plog::ConsoleAppender<plog::TxtFormatter>> ();
-    auto& init =  plog::init (plog::verbose, consoleAppender.get ());
-    if (logToFile) {
-        fileAppender = std::make_unique<plog::RollingFileAppender<plog::TxtFormatter>> ("TaikoArcadeLoader.log", 1000000, 3);
-        init.addAppender (fileAppender.get ());
-    }*/
 }
 
 void
@@ -70,6 +60,11 @@ LogMessageHandler (const char *function, const char *codeFile, int codeLine, Log
     // Determine log type string
     std::string logType = GetLogLevelString (messageLevel);
 
+    // Remove the absolute path of the build dir
+    constexpr std::string_view build_dir = XSTRING (SOURCE_ROOT);
+    std::string_view filename            = codeFile;
+    filename.remove_prefix (build_dir.size ());
+
     // Get current time and milliseconds
     SYSTEMTIME systemTime;
     GetSystemTime (&systemTime);
@@ -80,7 +75,7 @@ LogMessageHandler (const char *function, const char *codeFile, int codeLine, Log
 
     // Construct the log message
     std::ostringstream logStream;
-    logStream << function << " (" << codeFile << ":" << codeLine << "): " << formattedMessage;
+    logStream << function << " (" << filename << ":" << codeLine << "): " << formattedMessage;
     std::string logMessage = logStream.str ();
 
     // Print the log message

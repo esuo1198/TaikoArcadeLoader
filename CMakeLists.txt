@@ -122,20 +122,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(minhook)
 
-FetchContent_Declare(
-        magic_enum
-        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-        GIT_TAG v0.9.7
-)
-FetchContent_MakeAvailable(magic_enum)
-
-FetchContent_Declare(
-        plog
-        GIT_REPOSITORY https://github.com/SergiusTheBest/plog.git
-        GIT_TAG 1.1.10
-)
-FetchContent_MakeAvailable(plog)
-
 # Source files
 set(SOURCES
     src/dllmain.cpp
@@ -171,14 +157,17 @@ target_include_directories(bnusio PRIVATE
     ${zlib_SOURCE_DIR}
     ${libtomcrypt_SOURCE_DIR}/src/headers
     ${minhook_SOURCE_DIR}/include
-    ${magic_enum_SOURCE_DIR}
-    ${plog_SOURCE_DIR}/include
 )
 
 # Compiler definitions
 target_compile_definitions(bnusio PRIVATE
     _WIN32_WINNT=_WIN32_WINNT_WIN10
 )
+
+# Add link options
+if(NOT MSVC)
+    target_link_options(bnusio PRIVATE -Wl,--allow-multiple-definition)
+endif()
 
 # Link libraries
 target_link_libraries(bnusio PRIVATE
@@ -194,16 +183,11 @@ target_link_libraries(bnusio PRIVATE
     ws2_32
     ntdll
     minhook
-    magic_enum
-    plog
 )
 
-# Add link options
-# if(MSVC)
-#     target_link_options(bnusio PRIVATE /FORCE:MULTIPLE)
-# else()
-#     target_link_options(bnusio PRIVATE -Wl,--allow-multiple-definition)
-# endif()
+# Define log path; used to make the file path relative in the log calls.
+# Last character (-) to remove the trailing slash in the log path
+add_compile_definitions("SOURCE_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/src-")
 
 # Set runtime library to static
 if(MSVC)
@@ -218,17 +202,13 @@ if (MSVC)
     set_target_properties(bnusio PROPERTIES LINK_FLAGS "/DEF:${DEF_FILE}")
 endif()
 
-# Set a default target
-add_custom_target(default ALL DEPENDS bnusio)
-
-## Copy the build output to the Out folder
-set(OUT_DIR "${CMAKE_SOURCE_DIR}/dist")
-set(DLL_SOURCE_PATH "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bnusio.dll")
-
 add_custom_command(
     TARGET bnusio POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${DLL_SOURCE_PATH}"
-        "${OUT_DIR}/bnusio.dll"
+        "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bnusio.dll"
+        "${CMAKE_SOURCE_DIR}/dist/bnusio.dll"
     COMMENT "Copying bnusio.dll to dist directory"
 )
+
+# Set a default target
+add_custom_target(default ALL DEPENDS bnusio)

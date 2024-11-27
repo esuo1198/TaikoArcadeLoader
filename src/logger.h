@@ -7,7 +7,9 @@
 #include <source_location>
 #include <string_view>
 #include <wincon.h>
-#include <magic_enum/magic_enum.hpp>
+
+#define STRING(x)  #x
+#define XSTRING(x) STRING (x)
 
 enum class LogLevel {
     NONE = 0,
@@ -53,6 +55,9 @@ struct LogMessage {
     }
 };
 
+/* *
+ * Logs a message with file and line information, if the log level permits.
+ */
 template <>
 struct LogMessage<void> {
     LogMessage (const LogLevel level, const std::string_view format, const std::source_location &loc = std::source_location::current ()) {
@@ -65,29 +70,38 @@ struct LogMessage<void> {
 };
 
 LogMessage (LogLevel level, std::string_view format) -> LogMessage<void>;
-
 LogMessage (LogLevel level, std::wstring_view format) -> LogMessage<void>;
 
 template <typename... Args>
 LogMessage (LogLevel level, std::string_view format, Args &&...ts) -> LogMessage<Args...>;
-
 template <typename... Args>
 LogMessage (LogLevel level, std::wstring_view format, Args &&...ts) -> LogMessage<Args...>;
 
 /* Converts a string to a LogLevel type. */
 inline LogLevel
 GetLogLevel (const std::string &logLevelStr) {
-    const auto level = magic_enum::enum_cast<LogLevel> (logLevelStr);
-    return level.value_or (LogLevel::NONE);
+    if (logLevelStr == "DEBUG") return LogLevel::DEBUG;
+    else if (logLevelStr == "INFO") return LogLevel::INFO;
+    else if (logLevelStr == "WARN") return LogLevel::WARN;
+    else if (logLevelStr == "ERROR") return LogLevel::ERROR;
+    else if (logLevelStr == "HOOKS") return LogLevel::HOOKS;
+    return LogLevel::NONE;
 }
 
 /* Converts a LogLevel type to a string for logging. */
 inline std::string
-GetLogLevelString (const LogLevel messageLevel) {
-    const auto level = magic_enum::enum_name (messageLevel);
-    return std::string (level) + ": ";
+GetLogLevelString (LogLevel messageLevel) {
+    switch (messageLevel) {
+    case LogLevel::DEBUG: return "DEBUG: ";
+    case LogLevel::INFO: return "INFO:  ";
+    case LogLevel::WARN: return "WARN:  ";
+    case LogLevel::ERROR: return "ERROR: ";
+    case LogLevel::HOOKS: return "HOOKS: ";
+    default: return "NONE: ";
+    }
 }
 
+/* Converts a LogLevel type to an int for colors display in the console. */
 inline int
 GetLogLevelColor (const LogLevel messageLevel) {
     // Colors: https://i.sstatic.net/ZG625.png
