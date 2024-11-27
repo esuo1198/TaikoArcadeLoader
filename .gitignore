@@ -1,6 +1,5 @@
 # Build and Compiled folder
 build/
-out/
 
 # Vscode specific
 .vscode

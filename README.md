@@ -131,4 +131,4 @@ cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release 
 ```
 
-The compiled build of TaikoArcadeLoader will be written in the `out` folder.
+The compiled build of TaikoArcadeLoader will be written in the `dist` folder.

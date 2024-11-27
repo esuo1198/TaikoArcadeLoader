@@ -222,7 +222,7 @@ endif()
 add_custom_target(default ALL DEPENDS bnusio)
 
 ## Copy the build output to the Out folder
-set(OUT_DIR "${CMAKE_SOURCE_DIR}/out")
+set(OUT_DIR "${CMAKE_SOURCE_DIR}/dist")
 set(DLL_SOURCE_PATH "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bnusio.dll")
 
 add_custom_command(
@@ -230,12 +230,5 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${DLL_SOURCE_PATH}"
         "${OUT_DIR}/bnusio.dll"
-    COMMENT "Copying bnusio.dll to output directory"
-)
-add_custom_command(
-    TARGET bnusio POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/dist"
-        "${OUT_DIR}"
-    COMMENT "Copying dist folder to output directory"
+    COMMENT "Copying bnusio.dll to dist directory"
 )
