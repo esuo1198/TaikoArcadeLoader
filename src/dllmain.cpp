@@ -5,7 +5,7 @@
 #include "poll.h"
 #include "logger.h"
 
-GameVersion gameVersion = GameVersion::UNKNOWN;
+auto gameVersion = GameVersion::UNKNOWN;
 std::vector<HMODULE> plugins;
 u64 song_data_size = 1024 * 1024 * 64;
 void *song_data;
@@ -25,7 +25,6 @@ char chipId2[33]        = "00000000000000000000000000000002";
 bool windowed           = false;
 bool autoIme            = false;
 bool jpLayout           = false;
-bool useLayeredFs       = false;
 bool emulateUsio        = true;
 bool emulateCardReader  = true;
 bool emulateQr          = true;
@@ -39,7 +38,7 @@ HOOK (i32, ShowMouse, PROC_ADDRESS ("user32.dll", "ShowCursor"), bool) { return 
 HOOK (i32, ExitWindows, PROC_ADDRESS ("user32.dll", "ExitWindowsEx")) { ExitProcess (0); }
 HOOK (HWND, CreateWindow, PROC_ADDRESS ("user32.dll", "CreateWindowExW"), DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle,
       i32 X, i32 Y, i32 nWidth, i32 nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam) {
-    if (lpWindowName != NULL) {
+    if (lpWindowName != nullptr) {
         if (wcscmp (lpWindowName, L"Taiko") == 0) {
             if (windowed) dwStyle = WS_TILEDWINDOW ^ WS_MAXIMIZEBOX ^ WS_THICKFRAME;
 
@@ -88,7 +87,7 @@ void
 GetGameVersion () {
     wchar_t w_path[MAX_PATH];
     GetModuleFileNameW (nullptr, w_path, MAX_PATH);
-    std::filesystem::path path (w_path);
+    const std::filesystem::path path (w_path);
 
     if (!std::filesystem::exists (path) || !path.has_filename ()) {
         MessageBoxA (nullptr, "Failed to find executable", nullptr, MB_OK);
@@ -102,13 +101,13 @@ GetGameVersion () {
     }
 
     stream.seekg (0, std::ifstream::end);
-    size_t length = stream.tellg ();
+    const size_t length = stream.tellg ();
     stream.seekg (0, std::ifstream::beg);
 
-    char *buf = (char *)calloc (length + 1, sizeof (char));
+    const auto buf = static_cast<char *> (calloc (length + 1, sizeof (char)));
     stream.read (buf, length);
 
-    gameVersion = (GameVersion)XXH64 (buf, length, 0);
+    gameVersion = static_cast<GameVersion> (XXH64 (buf, length, 0));
 
     stream.close ();
     free (buf);
@@ -124,44 +123,42 @@ GetGameVersion () {
 
 void
 CreateCard () {
-    LogMessage (LOG_LEVEL_INFO, "Creating card.ini");
-    const char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    LogMessage (LogLevel::INFO, "Creating card.ini");
+    constexpr char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     char buf[64]                   = {0};
     srand (time (nullptr));
 
-    std::generate (buf, buf + 20, [&] () { return hexCharacterTable[rand () % 10]; });
+    std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
     WritePrivateProfileStringA ("card", "accessCode1", buf, ".\\card.ini");
-    std::generate (buf, buf + 32, [&] () { return hexCharacterTable[rand () % 16]; });
+    std::generate_n (buf, 32, [&] () { return hexCharacterTable[rand () % 16]; });
     WritePrivateProfileStringA ("card", "chipId1", buf, ".\\card.ini");
-    std::generate (buf, buf + 20, [&] () { return hexCharacterTable[rand () % 10]; });
+    std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
     WritePrivateProfileStringA ("card", "accessCode2", buf, ".\\card.ini");
-    std::generate (buf, buf + 32, [&] () { return hexCharacterTable[rand () % 16]; });
+    std::generate_n (buf, 32, [&] () { return hexCharacterTable[rand () % 16]; });
     WritePrivateProfileStringA ("card", "chipId2", buf, ".\\card.ini");
 }
 
 BOOL
-DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
+DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
         // This is bad, dont do this
         // I/O in DllMain can easily cause a deadlock
 
         // Init logger for loading config
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
-        LogMessage (LOG_LEVEL_INFO, "Loading config...");
+        LogMessage (LogLevel::INFO, "Loading config...");
 
         std::string version              = "auto";
-        std::filesystem::path configPath = std::filesystem::current_path () / "config.toml";
-        std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
-        if (config_ptr) {
-            toml_table_t *config = config_ptr.get ();
-            auto amauth          = openConfigSection (config, "amauth");
-            if (amauth) {
-                server      = readConfigString (amauth, "server", server);
-                port        = readConfigString (amauth, "port", port);
-                chassisId   = readConfigString (amauth, "chassis_id", chassisId);
-                shopId      = readConfigString (amauth, "shop_id", shopId);
-                gameVerNum  = readConfigString (amauth, "game_ver", gameVerNum);
-                countryCode = readConfigString (amauth, "country_code", countryCode);
+        const std::filesystem::path configPath = std::filesystem::current_path () / "config.toml";
+        const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
+        if (config_ptr) { const toml_table_t *config = config_ptr.get ();
+            if (const auto amauthConfig          = openConfigSection (config, "amauth")) {
+                server      = readConfigString (amauthConfig, "server", server);
+                port        = readConfigString (amauthConfig, "port", port);
+                chassisId   = readConfigString (amauthConfig, "chassis_id", chassisId);
+                shopId      = readConfigString (amauthConfig, "shop_id", shopId);
+                gameVerNum  = readConfigString (amauthConfig, "game_ver", gameVerNum);
+                countryCode = readConfigString (amauthConfig, "country_code", countryCode);
 
                 std::strcat (fullAddress, server.c_str ());
                 if (port != "") {
@@ -172,25 +169,20 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
                 std::strcat (placeId, countryCode.c_str ());
                 std::strcat (placeId, "0FF0");
             }
-            auto patches = openConfigSection (config, "patches");
-            if (patches) version = readConfigString (patches, "version", version);
-            auto emulation = openConfigSection (config, "emulation");
-            if (emulation) {
+            if (const auto patches = openConfigSection (config, "patches")) version = readConfigString (patches, "version", version);
+            if (const auto emulation = openConfigSection (config, "emulation")) {
                 emulateUsio        = readConfigBool (emulation, "usio", emulateUsio);
                 emulateCardReader  = readConfigBool (emulation, "card_reader", emulateCardReader);
                 acceptInvalidCards = readConfigBool (emulation, "accept_invalid", acceptInvalidCards);
                 emulateQr          = readConfigBool (emulation, "qr", emulateQr);
             }
-            auto graphics = openConfigSection (config, "graphics");
-            if (graphics) windowed = readConfigBool (graphics, "windowed", windowed);
-            auto keyboard = openConfigSection (config, "keyboard");
-            if (keyboard) {
+            if (const auto graphics = openConfigSection (config, "graphics")) windowed = readConfigBool (graphics, "windowed", windowed);
+            if (const auto keyboard = openConfigSection (config, "keyboard")) {
                 autoIme  = readConfigBool (keyboard, "auto_ime", autoIme);
                 jpLayout = readConfigBool (keyboard, "jp_layout", jpLayout);
             }
 
-            auto logging = openConfigSection (config, "logging");
-            if (logging) {
+            if (const auto logging = openConfigSection (config, "logging")) {
                 logLevelStr = readConfigString (logging, "log_level", logLevelStr);
                 logToFile   = readConfigBool (logging, "log_to_file", logToFile);
             }
@@ -198,7 +190,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
 
         // Update the logger with the level read from config file.
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
-        LogMessage (LOG_LEVEL_INFO, "Application started.");
+        LogMessage (LogLevel::INFO, "Application started.");
 
         if (version == "auto") {
             GetGameVersion ();
@@ -211,25 +203,22 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         } else if (version == "CHN00") {
             gameVersion = GameVersion::CHN00;
         } else {
-            LogMessage (LOG_LEVEL_ERROR, "GameVersion is UNKNOWN!");
+            LogMessage (LogLevel::ERROR, "GameVersion is UNKNOWN!");
             MessageBoxA (nullptr, "Unknown patch version", nullptr, MB_OK);
             ExitProcess (0);
         }
-        LogMessage (LOG_LEVEL_INFO, "GameVersion is %s", GameVersionToString (gameVersion));
+        LogMessage (LogLevel::INFO, "GameVersion is %s", GameVersionToString (gameVersion));
 
-        auto pluginPath = std::filesystem::current_path () / "plugins";
-
-        if (std::filesystem::exists (pluginPath)) {
+        if (const auto pluginPath = std::filesystem::current_path () / "plugins"; std::filesystem::exists (pluginPath)) {
             for (const auto &entry : std::filesystem::directory_iterator (pluginPath)) {
                 if (entry.path ().extension () == ".dll") {
                     auto name       = entry.path ().wstring ();
                     auto shortName  = entry.path ().filename ().wstring ();
-                    HMODULE hModule = LoadLibraryW (name.c_str ());
-                    if (!hModule) {
-                        LogMessage (LOG_LEVEL_ERROR, L"Failed to load plugin " + shortName);
+                    if (HMODULE hModule = LoadLibraryW (name.c_str ()); !hModule) {
+                        LogMessage (LogLevel::ERROR, L"Failed to load plugin " + shortName);
                     } else {
                         plugins.push_back (hModule);
-                        LogMessage (LOG_LEVEL_INFO, L"Loaded plugin " + shortName);
+                        LogMessage (LogLevel::INFO, L"Loaded plugin " + shortName);
                     }
                 }
             }
@@ -241,7 +230,7 @@ DllMain (HMODULE module, DWORD reason, LPVOID reserved) {
         GetPrivateProfileStringA ("card", "accessCode2", accessCode2, accessCode2, 21, ".\\card.ini");
         GetPrivateProfileStringA ("card", "chipId2", chipId2, chipId2, 33, ".\\card.ini");
 
-        LogMessage (LOG_LEVEL_WARN, "Loading patches, please wait...");
+        LogMessage (LogLevel::WARN, "Loading patches, please wait...");
 
         INSTALL_HOOK (ShowMouse);
         INSTALL_HOOK (ExitWindows);

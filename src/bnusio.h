@@ -1,3 +1,4 @@
+#pragma once
 namespace bnusio {
 void Init ();
 void Update ();

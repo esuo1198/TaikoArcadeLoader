@@ -4,7 +4,6 @@
 #include <ReadBarcode.h>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <vector>
 #define STB_IMAGE_IMPLEMENTATION
@@ -41,21 +40,21 @@ bool qrPluginRegistered = false;
 HOOK_DYNAMIC (char, QrInit, i64) { return 1; }
 HOOK_DYNAMIC (char, QrClose, i64) { return 1; }
 HOOK_DYNAMIC (char, QrRead, i64 a1) {
-    *(DWORD *)(a1 + 40) = 1;
-    *(DWORD *)(a1 + 16) = 1;
-    *(BYTE *)(a1 + 112) = 0;
+    *reinterpret_cast<DWORD *> (a1 + 40) = 1;
+    *reinterpret_cast<DWORD *> (a1 + 16) = 1;
+    *reinterpret_cast<BYTE *> (a1 + 112) = 0;
     return 1;
 }
 HOOK_DYNAMIC (i64, CallQrUnknown, i64) { return 1; }
 HOOK_DYNAMIC (bool, Send1, i64 a1) {
-    *(BYTE *)(a1 + 88) = 1;
-    *(i64 *)(a1 + 32)  = *(i64 *)(a1 + 24);
-    *(WORD *)(a1 + 89) = 0;
+    *reinterpret_cast<BYTE *> (a1 + 88) = 1;
+    *reinterpret_cast<i64 *> (a1 + 32)  = *reinterpret_cast<i64 *> (a1 + 24);
+    *reinterpret_cast<WORD *> (a1 + 89) = 0;
     return true;
 }
 HOOK_DYNAMIC (bool, Send2, i64 a1) {
-    *(WORD *)(a1 + 88) = 0;
-    *(BYTE *)(a1 + 90) = 0;
+    *reinterpret_cast<WORD *> (a1 + 88) = 0;
+    *reinterpret_cast<BYTE *> (a1 + 90) = 0;
     return true;
 }
 HOOK_DYNAMIC (bool, Send3, i64, char) { return true; }
@@ -76,10 +75,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::vector<i64> songNoes;
 
             if (config_ptr) {
-                auto qr = openConfigSection (config_ptr.get (), "qr");
-                if (qr) {
-                    auto data = openConfigSection (qr, "data");
-                    if (data) {
+                if (auto qr = openConfigSection (config_ptr.get (), "qr")) {
+                    if (auto data = openConfigSection (qr, "data")) {
                         serial   = readConfigString (data, "serial", "");
                         type     = readConfigInt (data, "type", 0);
                         songNoes = readConfigIntArray (data, "song_no", songNoes);
@@ -87,23 +84,23 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                 }
             }
 
-            BYTE serial_length           = (BYTE)serial.size ();
+            BYTE serial_length           = static_cast<BYTE> (serial.size ());
             std::vector<BYTE> byteBuffer = {0x53, 0x31, 0x32, 0x00, 0x00, 0xFF, 0xFF, serial_length, 0x01, 0x00};
 
             for (char c : serial)
-                byteBuffer.push_back ((BYTE)c);
+                byteBuffer.push_back (static_cast<BYTE> (c));
 
             if (type == 5) {
                 std::vector<BYTE> folderData = {0xFF, 0xFF};
 
                 folderData.push_back (songNoes.size () * 2);
 
-                folderData.push_back ((u8)(type & 0xFF));
-                folderData.push_back ((u8)((type >> 8) & 0xFF));
+                folderData.push_back (static_cast<u8> (type & 0xFF));
+                folderData.push_back (static_cast<u8> ((type >> 8) & 0xFF));
 
                 for (u16 songNo : songNoes) {
-                    folderData.push_back ((u8)(songNo & 0xFF));
-                    folderData.push_back ((u8)((songNo >> 8) & 0xFF));
+                    folderData.push_back (static_cast<u8> (songNo & 0xFF));
+                    folderData.push_back (static_cast<u8> ((songNo >> 8) & 0xFF));
                 }
 
                 for (auto c : folderData)
@@ -116,7 +113,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::stringstream hexStream;
             for (auto byteData : byteBuffer)
                 hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (byteData) << " ";
-            LogMessage (LOG_LEVEL_INFO, ("Data dump: " + hexStream.str ()).c_str ());
+            LogMessage (LogLevel::INFO, ("Data dump: " + hexStream.str ()).c_str ());
 
             memcpy (dest, byteBuffer.data (), byteBuffer.size ());
             gState = State::Ready;
@@ -125,14 +122,13 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::string imagePath = "";
 
             if (config_ptr) {
-                auto qr = openConfigSection (config_ptr.get (), "qr");
-                if (qr) imagePath = readConfigString (qr, "image_path", "");
+                if (auto qr = openConfigSection (config_ptr.get (), "qr")) imagePath = readConfigString (qr, "image_path", "");
             }
 
             std::u8string u8PathStr (imagePath.begin (), imagePath.end ());
             std::filesystem::path u8Path (u8PathStr);
             if (!std::filesystem::is_regular_file (u8Path)) {
-                LogMessage (LOG_LEVEL_ERROR, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str ());
+                LogMessage (LogLevel::ERROR, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -141,7 +137,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             std::unique_ptr<stbi_uc, void (*) (void *)> buffer (stbi_load (u8Path.string ().c_str (), &width, &height, &channels, 3),
                                                                 stbi_image_free);
             if (!buffer) {
-                LogMessage (LOG_LEVEL_ERROR, ("Failed to read image: " + u8Path.string () + " (" + stbi_failure_reason () + ")").c_str ());
+                LogMessage (LogLevel::ERROR, ("Failed to read image: " + u8Path.string () + " (" + stbi_failure_reason () + ")").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -149,7 +145,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             ZXing::ImageView image{buffer.get (), width, height, ZXing::ImageFormat::RGB};
             auto result = ReadBarcode (image);
             if (!result.isValid ()) {
-                LogMessage (LOG_LEVEL_ERROR, ("Failed to read QR: " + imagePath + " (" + ToString (result.error ()) + ")").c_str ());
+                LogMessage (LogLevel::ERROR, ("Failed to read QR: " + imagePath + " (" + ToString (result.error ()) + ")").c_str ());
                 gState = State::Ready;
                 return 0;
             }
@@ -163,18 +159,17 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             gState = State::Ready;
             return dataSize;
         } else if (gMode == Mode::Plugin) {
-            FARPROC getEvent = GetProcAddress (gPlugin, "GetQr");
-            if (getEvent) {
-                unsigned char plugin_data[length];
-                int buf_len = ((getQrEvent *)getEvent) (length, plugin_data);
+            if (FARPROC getEvent = GetProcAddress (gPlugin, "GetQr")) {
+                std::vector<unsigned char> plugin_data(length);
+                int buf_len = reinterpret_cast<getQrEvent *> (getEvent) (length, plugin_data.data ());
                 if (0 < buf_len && buf_len <= length) {
                     std::stringstream hexStream;
                     for (int i = 0; i < buf_len; i++)
                         hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (plugin_data[i]) << " ";
-                    LogMessage (LOG_LEVEL_INFO, ("QR dump: " + hexStream.str ()).c_str ());
-                    memcpy (dest, plugin_data, buf_len);
+                    LogMessage (LogLevel::INFO, ("QR dump: " + hexStream.str ()).c_str ());
+                    memcpy (dest, plugin_data.data (), buf_len);
                 } else {
-                    LogMessage (LOG_LEVEL_ERROR, ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str ());
+                    LogMessage (LogLevel::ERROR, ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str ());
                 }
                 gState = State::Ready;
                 return buf_len;
@@ -185,8 +180,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
         }
     } else if (qrPluginRegistered) {
         for (auto plugin : qrPlugins) {
-            FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr");
-            if (usingQrEvent) ((event *)usingQrEvent) ();
+            if (FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr")) ((event *)usingQrEvent) ();
         }
     }
     return 0;
@@ -216,8 +210,7 @@ Update () {
             gState = State::CopyWait;
             gMode  = Mode::Image;
         } else if (qrPluginRegistered) {
-            for (auto plugin : qrPlugins) {
-                FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
+            for (const auto plugin : qrPlugins) { const FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
                 if (checkEvent && ((checkQrEvent *)checkEvent) ()) {
                     gState  = State::CopyWait;
                     gMode   = Mode::Plugin;
@@ -231,28 +224,27 @@ Update () {
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_INFO, "Init Qr patches");
+    LogMessage (LogLevel::INFO, "Init Qr patches");
 
     if (!emulateQr) {
-        LogMessage (LOG_LEVEL_WARN, "QR emulation disabled");
+        LogMessage (LogLevel::WARN, "QR emulation disabled");
         return;
     }
 
-    for (auto plugin : plugins) {
-        FARPROC initEvent = GetProcAddress (plugin, "InitQr");
+    for (auto plugin : plugins) { const FARPROC initEvent = GetProcAddress (plugin, "InitQr");
         if (initEvent) ((initQrEvent *)initEvent) (gameVersion);
 
-        FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr");
+        const FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr");
         if (usingQrEvent) qrPlugins.push_back (plugin);
     }
     if (qrPlugins.size () > 0) {
 
-        LogMessage (LOG_LEVEL_INFO, "QR plugin found!");
+        LogMessage (LogLevel::INFO, "QR plugin found!");
         qrPluginRegistered = true;
     }
 
     SetConsoleOutputCP (CP_UTF8);
-    auto amHandle = (u64)GetModuleHandle ("AMFrameWork.dll");
+    const auto amHandle = (u64)GetModuleHandle ("AMFrameWork.dll");
     switch (gameVersion) {
     case GameVersion::JPN00: {
         INSTALL_HOOK_DYNAMIC (QrInit, (LPVOID)(amHandle + 0x1B3E0));
@@ -267,8 +259,8 @@ Init () {
         break;
     }
     case GameVersion::JPN08: {
-        INSTALL_HOOK_DYNAMIC (QrInit, (LPVOID)(amHandle + 0x1BA00));
-        INSTALL_HOOK_DYNAMIC (QrClose, (LPVOID)(amHandle + 0x1BBD0));
+        INSTALL_HOOK_DYNAMIC (QrInit, reinterpret_cast<LPVOID> (amHandle + 0x1BA00));
+        INSTALL_HOOK_DYNAMIC (QrClose, reinterpret_cast<LPVOID> (amHandle + 0x1BBD0));
         INSTALL_HOOK_DYNAMIC (QrRead, (LPVOID)(amHandle + 0x1BC20));
         INSTALL_HOOK_DYNAMIC (CallQrUnknown, (LPVOID)(amHandle + 0xFD40));
         INSTALL_HOOK_DYNAMIC (Send1, (LPVOID)(amHandle + 0x1C220));

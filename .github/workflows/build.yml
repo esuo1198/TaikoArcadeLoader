@@ -4,18 +4,22 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Install depends
-        run: sudo apt-get install -y mingw-w64 ninja-build nasm; pip3 install meson
-      - name: Upgrade gcc
-        run: npx xpm init && npx xpm install @xpack-dev-tools/mingw-w64-gcc@latest --verbose
-      - name: Make
-        run: export PATH=$GITHUB_WORKSPACE/xpacks/.bin:$PATH && make setup dist-no-7z
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure CMake
+        run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Copy bnusio.dll
+        run: copy build\Release\bnusio.dll dist
+      - name: Zip dist folder
+        run: powershell Compress-Archive -Path dist\* -DestinationPath dist.zip
       - uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: out/
+          path: dist.zip

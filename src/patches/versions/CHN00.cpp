@@ -29,50 +29,50 @@ FUNCTION_PTR (i64, lua_pushboolean, PROC_ADDRESS ("lua51.dll", "lua_pushboolean"
 FUNCTION_PTR (i64, lua_pushstring, PROC_ADDRESS ("lua51.dll", "lua_pushstring"), u64, u64);
 
 i64
-lua_pushtrue (i64 a1) {
+lua_pushtrue (const i64 a1) {
     lua_settop (a1, 0);
     lua_pushboolean (a1, 1);
     return 1;
 }
 
 HOOK (i64, AvailableMode_Dani_AI, ASLR (0x1401AC550), i64 a1) {
-    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Dani_AI was called");
+    LogMessage (LogLevel::HOOKS, "AvailableMode_Dani_AI was called");
     return lua_pushtrue (a1);
 }
 HOOK (i64, AvailableMode_Collabo025, ASLR (0x1402BFF70), i64 *, i64 a2) {
-    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo025 was called");
+    LogMessage (LogLevel::HOOKS, "AvailableMode_Collabo025 was called");
     return lua_pushtrue (a2);
 }
 HOOK (i64, AvailableMode_Collabo026, ASLR (0x1402BC9B0), i64 a1) {
-    LogMessage (LOG_LEVEL_HOOKS, "AvailableMode_Collabo026 was called");
+    LogMessage (LogLevel::HOOKS, "AvailableMode_Collabo026 was called");
     return lua_pushtrue (a1);
 }
 
 HOOK (i64, GetLanguage, ASLR (0x140023720), i64 a1) {
-    LogMessage (LOG_LEVEL_HOOKS, "GetLanguage was called");
-    auto result = originalGetLanguage (a1);
-    language    = *((u32 *)result);
+    LogMessage (LogLevel::HOOKS, "GetLanguage was called");
+    const auto result = originalGetLanguage (a1);
+    language    = *reinterpret_cast<u32 *> (result);
     return result;
 }
 HOOK (i64, GetRegionLanguage, ASLR (0x1401AC300), i64 a1) {
-    LogMessage (LOG_LEVEL_HOOKS, "GetRegionLanguage was called");
+    LogMessage (LogLevel::HOOKS, "GetRegionLanguage was called");
     lua_settop (a1, 0);
-    lua_pushstring (a1, (u64)languageStr (language));
+    lua_pushstring (a1, reinterpret_cast<u64> (languageStr (language)));
     return 1;
 }
 HOOK (i64, GetCabinetLanguage, ASLR (0x1401AF270), i64, i64 a2) {
-    LogMessage (LOG_LEVEL_HOOKS, "GetCabinetLanguage was called");
+    LogMessage (LogLevel::HOOKS, "GetCabinetLanguage was called");
     lua_settop (a2, 0);
-    lua_pushstring (a2, (u64)languageStr (language));
+    lua_pushstring (a2, reinterpret_cast<u64> (languageStr (language)));
     return 1;
 }
 
 HOOK_DYNAMIC (char, AMFWTerminate, i64) {
-    LogMessage (LOG_LEVEL_HOOKS, "AMFWTerminate was called");
+    LogMessage (LogLevel::HOOKS, "AMFWTerminate was called");
     return 0;
 }
 
-const i32 datatableBufferSize = 1024 * 1024 * 12;
+constexpr i32 datatableBufferSize = 1024 * 1024 * 12;
 safetyhook::Allocation datatableBuffer1;
 safetyhook::Allocation datatableBuffer2;
 safetyhook::Allocation datatableBuffer3;
@@ -82,26 +82,24 @@ const std::vector<uintptr_t> datatableBuffer3Addresses = {0x14009356F, 0x1400935
 const std::vector<uintptr_t> memsetSizeAddresses       = {0x140093416, 0x14009342A, 0x140093569};
 
 void
-AllocateStaticBufferNear (void *target_address, size_t size, safetyhook::Allocation *newBuffer) {
-    auto allocator                = safetyhook::Allocator::global ();
-    std::vector desired_addresses = {(uint8_t *)target_address};
-    auto allocation_result        = allocator->allocate_near (desired_addresses, size);
-    if (allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
+AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::Allocation *newBuffer) {
+    const auto allocator                = safetyhook::Allocator::global ();
+    const std::vector desired_addresses = {static_cast<uint8_t *> (target_address)};
+    if (auto allocation_result              = allocator->allocate_near (desired_addresses, size); allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
 }
 
 void
 ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *newBufferAddress) {
-    for (auto bufferAddress : bufferAddresses) {
-        uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
-        uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
-        intptr_t offset               = (intptr_t)newBufferAddress - lea_instruction_end;
-        WRITE_MEMORY (lea_instruction_dst, i32, (i32)offset);
+    for (const auto bufferAddress : bufferAddresses) { const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
+        const uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
+        const intptr_t offset               = reinterpret_cast<intptr_t> (newBufferAddress) - lea_instruction_end;
+        WRITE_MEMORY (lea_instruction_dst, i32, static_cast<i32> (offset));
     }
 }
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_INFO, "Init CHN00 patches");
+    LogMessage (LogLevel::INFO, "Init CHN00 patches");
     i32 xRes            = 1920;
     i32 yRes            = 1080;
     bool vsync          = false;
@@ -111,9 +109,9 @@ Init () {
     bool modeCollabo025 = false;
     bool modeCollabo026 = false;
 
-    haspBuffer = (u8 *)malloc (0xD40);
+    haspBuffer = static_cast<u8 *> (malloc (0xD40));
     memset (haspBuffer, 0, 0xD40);
-    strcpy ((char *)(haspBuffer + 0xD00), chassisId.c_str ());
+    strcpy (reinterpret_cast<char *> (haspBuffer + 0xD00), chassisId.c_str ());
     u8 crc = 0;
     for (int i = 0; i < 62; i++)
         crc += haspBuffer[0xD00 + i];
@@ -128,14 +126,12 @@ Init () {
     INSTALL_HOOK (HaspGetInfo);
     INSTALL_HOOK (HaspRead);
 
-    auto configPath = std::filesystem::current_path () / "config.toml";
-    std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
+    const auto configPath = std::filesystem::current_path () / "config.toml";
+    const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
-        auto patches = openConfigSection (config_ptr.get (), "patches");
-        if (patches) {
+        if (const auto patches = openConfigSection (config_ptr.get (), "patches")) {
             unlockSongs = readConfigBool (patches, "unlock_songs", unlockSongs);
-            auto chn00  = openConfigSection (patches, "chn00");
-            if (chn00) {
+            if (const auto chn00  = openConfigSection (patches, "chn00")) {
                 fixLanguage    = readConfigBool (chn00, "fix_language", fixLanguage);
                 demoMovie      = readConfigBool (chn00, "demo_movie", demoMovie);
                 modeCollabo025 = readConfigBool (chn00, "mode_collabo025", modeCollabo025);
@@ -143,10 +139,8 @@ Init () {
             }
         }
 
-        auto graphics = openConfigSection (config_ptr.get (), "graphics");
-        if (graphics) {
-            auto res = openConfigSection (graphics, "res");
-            if (res) {
+        if (const auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
+            if (const auto res = openConfigSection (graphics, "res")) {
                 xRes = readConfigInt (res, "x", xRes);
                 yRes = readConfigInt (res, "y", yRes);
             }
@@ -182,7 +176,7 @@ Init () {
 
     // Remove datatable size limit
     {
-        for (auto address : memsetSizeAddresses)
+        for (const auto address : memsetSizeAddresses)
             WRITE_MEMORY (ASLR (address) + 2, i32, datatableBufferSize);
 
         auto bufferBase = MODULE_HANDLE - 0x03000000;
@@ -213,8 +207,8 @@ Init () {
     if (modeCollabo026) INSTALL_HOOK (AvailableMode_Collabo026);
 
     // Disable live check
-    auto amHandle = (u64)GetModuleHandle ("AMFrameWork.dll");
-    INSTALL_HOOK_DYNAMIC (AMFWTerminate, (void *)(amHandle + 0x25A00));
+    const auto amHandle = reinterpret_cast<u64> (GetModuleHandle ("AMFrameWork.dll"));
+    INSTALL_HOOK_DYNAMIC (AMFWTerminate, reinterpret_cast<void *> (amHandle + 0x25A00));
 
     // Move various files to current directory
     WRITE_MEMORY (amHandle + 0xC652, u8, 0xEB);  // CreditLogPathA

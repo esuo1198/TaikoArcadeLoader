@@ -15,7 +15,7 @@ namespace patches::JPN08 {
 
 HOOK_DYNAMIC (char, AMFWTerminate, i64) { return 0; }
 
-const i32 datatableBufferSize = 1024 * 1024 * 12;
+constexpr i32 datatableBufferSize = 1024 * 1024 * 12;
 safetyhook::Allocation datatableBuffer;
 const std::vector<uintptr_t> datatableBufferAddresses
     = {0x14006D9A6, 0x14006D9D3, 0x14006E048, 0x14006E075, 0x14006E3A8, 0x14006E3D5, 0x14006E988, 0x14006E9B5, 0x14006EE22, 0x14006EE51, 0x14006F068,
@@ -29,26 +29,24 @@ const std::vector<uintptr_t> memsetSizeAddresses
        0x14007336E, 0x1400735E2, 0x140073906, 0x140073E6D, 0x140074A87, 0x14007507C, 0x14007551E, 0x14007589C, 0x140075D82};
 
 void
-AllocateStaticBufferNear (void *target_address, size_t size, safetyhook::Allocation *newBuffer) {
-    auto allocator                = safetyhook::Allocator::global ();
-    std::vector desired_addresses = {(uint8_t *)target_address};
-    auto allocation_result        = allocator->allocate_near (desired_addresses, size);
-    if (allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
+AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::Allocation *newBuffer) {
+    const auto allocator                = safetyhook::Allocator::global ();
+    const std::vector desired_addresses = {static_cast<uint8_t *> (target_address)};
+    if (auto allocation_result              = allocator->allocate_near (desired_addresses, size); allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
 }
 
 void
 ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *newBufferAddress) {
-    for (auto bufferAddress : bufferAddresses) {
-        uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
-        uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
-        intptr_t offset               = (intptr_t)newBufferAddress - lea_instruction_end;
-        WRITE_MEMORY (lea_instruction_dst, i32, (i32)offset);
+    for (const auto bufferAddress : bufferAddresses) { const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
+        const uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
+        const intptr_t offset               = reinterpret_cast<intptr_t> (newBufferAddress) - lea_instruction_end;
+        WRITE_MEMORY (lea_instruction_dst, i32, static_cast<i32> (offset));
     }
 }
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_INFO, "Init JPN08 patches");
+    LogMessage (LogLevel::INFO, "Init JPN08 patches");
     i32 xRes         = 1920;
     i32 yRes         = 1080;
     bool vsync       = false;
@@ -57,13 +55,10 @@ Init () {
     auto configPath = std::filesystem::current_path () / "config.toml";
     std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
-        auto patches = openConfigSection (config_ptr.get (), "patches");
-        if (patches) unlockSongs = readConfigBool (patches, "unlock_songs", unlockSongs);
+        if (auto patches = openConfigSection (config_ptr.get (), "patches")) unlockSongs = readConfigBool (patches, "unlock_songs", unlockSongs);
 
-        auto graphics = openConfigSection (config_ptr.get (), "graphics");
-        if (graphics) {
-            auto res = openConfigSection (graphics, "res");
-            if (res) {
+        if (auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
+            if (auto res = openConfigSection (graphics, "res")) {
                 xRes = readConfigInt (res, "x", xRes);
                 yRes = readConfigInt (res, "y", yRes);
             }
@@ -167,8 +162,8 @@ Init () {
     }
 
     // Disable live check
-    auto amHandle = (u64)GetModuleHandle ("AMFrameWork.dll");
-    INSTALL_HOOK_DYNAMIC (AMFWTerminate, (void *)(amHandle + 0x35A00));
+    auto amHandle = reinterpret_cast<u64> (GetModuleHandle ("AMFrameWork.dll"));
+    INSTALL_HOOK_DYNAMIC (AMFWTerminate, reinterpret_cast<void *> (amHandle + 0x35A00));
 
     // Move various files to current directory
     WRITE_MEMORY (amHandle + 0x148AF, u8, 0xEB); // CreditLogPathA

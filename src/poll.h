@@ -1,9 +1,8 @@
 #pragma once
-#include <SDL.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <toml.h>
+#include <cstdint>
 #include <windows.h>
+#include <SDL.h>
+#include <toml.h>
 
 enum SDLAxis {
     SDL_AXIS_NULL,
@@ -65,8 +64,8 @@ void UpdatePoll (HWND windowHandle);
 void DisposePoll ();
 void SetKeyboardButtons ();
 ConfigValue StringToConfigEnum (const char *value);
-void SetConfigValue (toml_table_t *table, const char *key, Keybindings *keybind);
-InternalButtonState GetInternalButtonState (Keybindings bindings);
+void SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bind);
+InternalButtonState GetInternalButtonState (const Keybindings& bindings);
 void SetRumble (int left, int right, int length);
 
 bool KeyboardIsDown (uint8_t keycode);
@@ -99,6 +98,6 @@ float ControllerAxisWasDown (SDLAxis axis);
 bool ControllerAxisWasUp (SDLAxis axis);
 bool ControllerAxisIsTapped (SDLAxis axis);
 bool ControllerAxisIsReleased (SDLAxis axis);
-bool IsButtonTapped (Keybindings bindings);
-bool IsButtonReleased (Keybindings bindings);
-float IsButtonDown (Keybindings bindings);
+bool IsButtonTapped (const Keybindings& bindings);
+bool IsButtonReleased (const Keybindings& bindings);
+float IsButtonDown (const Keybindings& bindings);

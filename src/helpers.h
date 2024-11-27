@@ -1,16 +1,21 @@
 #pragma once
-#include <windows.h>
-#include <bits/stdc++.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
 #include <map>
 #include <mutex>
+#include <iostream>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <safetyhook.hpp>
-#include <MinHook.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <toml.h>
+#include <windows.h>
+// ReSharper disable once CppUnusedIncludeDirective
+#include <MinHook.h>
+
 #include "constants.h"
 #include "logger.h"
 
@@ -39,20 +44,20 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 
 #define HOOK(returnType, functionName, location, ...)         \
     typedef returnType (*functionName) (__VA_ARGS__);         \
-    functionName original##functionName = NULL;               \
+    functionName original##functionName = nullptr;               \
     void *where##functionName           = (void *)(location); \
     returnType implOf##functionName (__VA_ARGS__)
 
 #define HOOK_DYNAMIC(returnType, functionName, ...)   \
     typedef returnType (*functionName) (__VA_ARGS__); \
-    functionName original##functionName = NULL;       \
-    void *where##functionName           = NULL;       \
+    functionName original##functionName = nullptr;       \
+    void *where##functionName           = nullptr;       \
     returnType implOf##functionName (__VA_ARGS__)
 
 #define VTABLE_HOOK(returnType, className, functionName, ...)                      \
     typedef returnType (*className##functionName) (className * This, __VA_ARGS__); \
-    className##functionName original##className##functionName = NULL;              \
-    void *where##className##functionName                      = NULL;              \
+    className##functionName original##className##functionName = nullptr;              \
+    void *where##className##functionName                      = nullptr;              \
     returnType implOf##className##functionName (className *This, __VA_ARGS__)
 
 #define MID_HOOK(functionName, location, ...)   \
@@ -68,7 +73,7 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 
 #define INSTALL_HOOK(functionName)                                                                                     \
     {                                                                                                                  \
-        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing hook for ") + #functionName).c_str ());                 \
+        LogMessage (LogLevel::DEBUG, std::string ("Installing hook for ") + #functionName);                 \
         MH_Initialize ();                                                                                              \
         MH_CreateHook ((void *)where##functionName, (void *)implOf##functionName, (void **)(&original##functionName)); \
         MH_EnableHook ((void *)where##functionName);                                                                   \
@@ -82,7 +87,7 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 
 #define INSTALL_HOOK_DIRECT(location, locationOfHook)                                                     \
     {                                                                                                     \
-        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing direct hook for ") + #location).c_str ()); \
+        LogMessage (LogLevel::DEBUG, std::string ("Installing direct hook for ") + #location); \
         MH_Initialize ();                                                                                 \
         MH_CreateHook ((void *)(location), (void *)(locationOfHook), NULL);                               \
         MH_EnableHook ((void *)(location));                                                               \
@@ -96,14 +101,14 @@ const HMODULE MODULE_HANDLE = GetModuleHandle (nullptr);
 
 #define INSTALL_MID_HOOK(functionName)                                                                     \
     {                                                                                                      \
-        LogMessage (LOG_LEVEL_DEBUG, (std::string ("Installing mid hook for ") + #functionName).c_str ()); \
+        LogMessage (LogLevel::DEBUG, std::string ("Installing mid hook for ") + #functionName); \
         midHook##functionName = safetyhook::create_mid (where##functionName, implOf##functionName);        \
     }
 
 #define INSTALL_MID_HOOK_DYNAMIC(functionName, location) \
     { mapOf##functionName[location] = safetyhook::create_mid (location, implOf##functionName); }
 
-bool sendFlag = false;
+inline bool sendFlag = false;
 #define SCENE_RESULT_HOOK(functionName, location)                                                                                \
     HOOK (void, functionName, location, i64 a1, i64 a2, i64 a3) {                                                                \
         if (TestMode::ReadTestModeValue (L"ModInstantResult") != 1 && TestMode::ReadTestModeValue (L"NumberOfStageItem") <= 4) { \
@@ -184,17 +189,16 @@ bool sendFlag = false;
         VirtualProtect ((void *)(location), (size_t)(count), oldProtect, &oldProtect);             \
     }
 
-#define COUNTOFARR(arr) sizeof (arr) / sizeof (arr[0])
 #define round(num)      ((num > 0) ? (int)(num + 0.5) : (int)(num - 0.5))
 
-toml_table_t *openConfig (std::filesystem::path path);
-toml_table_t *openConfigSection (toml_table_t *config, const std::string &sectionName);
-bool readConfigBool (toml_table_t *table, const std::string &key, bool notFoundValue);
-int64_t readConfigInt (toml_table_t *table, const std::string &key, int64_t notFoundValue);
-const std::string readConfigString (toml_table_t *table, const std::string &key, const std::string &notFoundValue);
-std::vector<int64_t> readConfigIntArray (toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
-std::wstring replace (const std::wstring orignStr, const std::wstring oldStr, const std::wstring newStr);
-std::string replace (const std::string orignStr, const std::string oldStr, const std::string newStr);
+toml_table_t *openConfig (const std::filesystem::path& path);
+toml_table_t *openConfigSection (const toml_table_t *config, const std::string &sectionName);
+bool readConfigBool (const toml_table_t *table, const std::string &key, bool notFoundValue);
+int64_t readConfigInt (const toml_table_t *table, const std::string &key, int64_t notFoundValue);
+std::string readConfigString (const toml_table_t *table, const std::string &key, const std::string &notFoundValue);
+std::vector<int64_t> readConfigIntArray (const toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
+std::wstring replace (const std::wstring& orignStr, const std::wstring& oldStr, const std::wstring& newStr);
+std::string replace (const std::string& orignStr, const std::string& oldStr, const std::string& newStr);
 const char *GameVersionToString (GameVersion version);
 const char *languageStr (int language);
 std::string ConvertWideToUtf8 (const std::wstring &wstr);

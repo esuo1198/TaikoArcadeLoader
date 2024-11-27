@@ -1,4 +1,0 @@
-[wrap-git]
-url = https://github.com/cktan/tomlc99.git
-revision = master
-diff_files = tomlc99.patch

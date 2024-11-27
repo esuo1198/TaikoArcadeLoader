@@ -1,15 +1,10 @@
+#include <winsock2.h>
 #include "helpers.h"
-#include <bits/stdc++.h>
-#include <format>
 #include <MinHook.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <toml.h>
 #include <windows.h>
-#include <winsock2.h>
 #include <ws2tcpip.h>
 
 /*
@@ -29,9 +24,9 @@ namespace patches::AmAuth {
 
 char server_ip[16];
 
-const GUID IID_CAuth{0x045A5150, 0xD2B3, 0x4590, {0xA3, 0x8B, 0xC1, 0x15, 0x86, 0x78, 0xE1, 0xAC}};
+constexpr GUID IID_CAuth{0x045A5150, 0xD2B3, 0x4590, {0xA3, 0x8B, 0xC1, 0x15, 0x86, 0x78, 0xE1, 0xAC}};
 
-const GUID IID_CAuthFactory{0x4603BB03, 0x058D, 0x43D9, {0xB9, 0x6F, 0x63, 0x9B, 0xE9, 0x08, 0xC1, 0xED}};
+constexpr GUID IID_CAuthFactory{0x4603BB03, 0x058D, 0x43D9, {0xB9, 0x6F, 0x63, 0x9B, 0xE9, 0x08, 0xC1, 0xED}};
 
 typedef struct amcus_network_state {
     char mode[16];
@@ -128,7 +123,8 @@ typedef struct amcus_state {
     /* Offset: 8 */ int32_t allnet_auth_state;
     /* Offset: 12 */ int32_t allnet_auth_count;
     /* Offset: 16 */ int32_t allnet_last_error;
-    /* Offset: 24 */ struct mucha_state mucha_state;
+    /* Offset: 24 */
+    mucha_state mucha_state;
     /* Offset: 176 */ int64_t clock_status;
     /* Offset: 184 */ int64_t name_resolution_timeout;
     /* Offset: 192 */ /* ENUM32 */ uint32_t auth_type;
@@ -266,22 +262,21 @@ enum daemon_mode {
 class CAuth : public IUnknown {
 public:
     STDMETHODIMP
-    QueryInterface (REFIID riid, LPVOID *ppvObj) {
+    QueryInterface (REFIID riid, LPVOID *ppvObj) override {
         wchar_t *iid_str;
-        StringFromCLSID (riid, &iid_str);
+        [[maybe_unused]]auto _ = StringFromCLSID (riid, &iid_str);
 
         if (riid == IID_IUnknown || riid == IID_CAuth) {
             *ppvObj = this;
             this->AddRef ();
             return 0;
-        } else {
-            *ppvObj = 0;
-            return E_NOINTERFACE;
         }
+        *ppvObj = nullptr;
+        return E_NOINTERFACE;
     }
 
-    STDMETHODIMP_ (ULONG) AddRef () { return this->refCount++; }
-    STDMETHODIMP_ (ULONG) Release () {
+    STDMETHODIMP_ (ULONG) AddRef () override { return this->refCount++; }
+    STDMETHODIMP_ (ULONG) Release () override {
         this->refCount--;
         if (this->refCount <= 0) {
             // delete this;
@@ -305,10 +300,10 @@ public:
     virtual int32_t IAuth_GetUpdaterState (amcus_state_t *arr) {
         memset (arr, 0, sizeof (*arr));
         // Convert gameVerNum from string to double
-        double ver_d = std::stod (gameVerNum.c_str ());
+        const double ver_d = std::stod (gameVerNum.c_str ());
 
-        int ver_top = (int)ver_d;
-        int ver_btm = (int)(ver_d * 100);
+        const int ver_top = static_cast<int> (ver_d);
+        int ver_btm       = static_cast<int> (ver_d * 100);
 
         if (ver_top != 0) ver_btm %= (ver_top * 100);
 
@@ -494,7 +489,6 @@ public:
 
     virtual void Unk33 () {}
 
-public:
     CAuth () {}
 
     virtual ~CAuth () {}
@@ -507,46 +501,44 @@ class CAuthFactory final : public IClassFactory {
 public:
     virtual ~CAuthFactory () = default;
     STDMETHODIMP
-    QueryInterface (REFIID riid, LPVOID *ppvObj) {
+    QueryInterface (REFIID riid, LPVOID *ppvObj) override {
         wchar_t *iid_str;
-        StringFromCLSID (riid, &iid_str);
+        [[maybe_unused]] auto _ = StringFromCLSID (riid, &iid_str);
 
         if (riid == IID_IUnknown || riid == IID_IClassFactory || riid == IID_CAuthFactory) {
             *ppvObj = this;
             return 0;
-        } else {
-            *ppvObj = 0;
-            return E_NOINTERFACE;
         }
+        *ppvObj = nullptr;
+        return E_NOINTERFACE;
     }
 
-    STDMETHODIMP_ (ULONG) AddRef () { return 2; }
-    STDMETHODIMP_ (ULONG) Release () { return 1; }
+    STDMETHODIMP_ (ULONG) AddRef () override { return 2; }
+    STDMETHODIMP_ (ULONG) Release () override { return 1; }
 
-    virtual HRESULT CreateInstance (IUnknown *outer, REFIID riid, void **object) {
+    HRESULT CreateInstance (IUnknown *outer, REFIID riid, void **object) override {
         if (outer != nullptr) return CLASS_E_NOAGGREGATION;
 
-        CAuth *auth = new CAuth ();
+        const auto auth = new CAuth ();
         return auth->QueryInterface (riid, object);
     }
 
-    virtual HRESULT LockServer (int32_t lock) { return 0; }
+    HRESULT LockServer (int32_t lock) override { return 0; }
 };
 
-static HRESULT (STDAPICALLTYPE *g_origCoCreateInstance) (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, const IID *const riid,
+static HRESULT (STDAPICALLTYPE *g_origCoCreateInstance) (const IID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, const IID *riid,
                                                          LPVOID *ppv);
 
 static HRESULT STDAPICALLTYPE
-CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, const IID *const riid, LPVOID *ppv) {
+CoCreateInstanceHook (const IID *const rclsid, const LPUNKNOWN pUnkOuter, const DWORD dwClsContext, const IID *const riid, LPVOID *ppv) {
     HRESULT result;
 
     LPOLESTR clsidStr = nullptr;
     LPOLESTR iidStr   = nullptr;
-    StringFromIID (*rclsid, &clsidStr);
-    StringFromIID (*riid, &iidStr);
+    [[maybe_unused]] auto _ = StringFromIID (*rclsid, &clsidStr);
+    _ = StringFromIID (*riid, &iidStr);
 
-    if (IsEqualGUID (*rclsid, IID_CAuthFactory) && IsEqualGUID (*riid, IID_CAuth)) {
-        auto cauth = new CAuth ();
+    if (IsEqualGUID (*rclsid, IID_CAuthFactory) && IsEqualGUID (*riid, IID_CAuth)) { const auto cauth = new CAuth ();
         result     = cauth->QueryInterface (*riid, ppv);
     } else {
         result = g_origCoCreateInstance (rclsid, pUnkOuter, dwClsContext, riid, ppv);
@@ -559,18 +551,18 @@ CoCreateInstanceHook (const IID *const rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsC
 
 void
 Init () {
-    LogMessage (LOG_LEVEL_INFO, "Init AmAuth patches");
+    LogMessage (LogLevel::INFO, "Init AmAuth patches");
 
     MH_Initialize ();
-    MH_CreateHookApi (L"ole32.dll", "CoCreateInstance", (LPVOID)CoCreateInstanceHook,
-                      (void **)&g_origCoCreateInstance); // NOLINT(clang-diagnostic-microsoft-cast)
+    MH_CreateHookApi (L"ole32.dll", "CoCreateInstance", reinterpret_cast<LPVOID>(CoCreateInstanceHook),
+                      reinterpret_cast<void **> (&g_origCoCreateInstance));
     MH_EnableHook (nullptr);
 
-    struct addrinfo *res = 0;
-    getaddrinfo (server.c_str (), "", 0, &res);
-    for (struct addrinfo *i = res; i != 0; i = i->ai_next) {
+    addrinfo *res = nullptr;
+    getaddrinfo (server.c_str (), "", nullptr, &res);
+    for (const addrinfo *i = res; i != nullptr; i = i->ai_next) {
         if (res->ai_addr->sa_family != AF_INET) continue;
-        struct sockaddr_in *p = (struct sockaddr_in *)res->ai_addr;
+        const sockaddr_in *p = reinterpret_cast<struct sockaddr_in *> (res->ai_addr);
         inet_ntop (AF_INET, &p->sin_addr, server_ip, 0x10);
         break;
     }

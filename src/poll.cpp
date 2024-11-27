@@ -1,6 +1,6 @@
 #include "poll.h"
 #include "helpers.h"
-#include <windows.h>
+#include <filesystem>
 
 extern bool jpLayout;
 
@@ -321,61 +321,65 @@ SDL_GameController *controllers[255];
 
 void
 SetKeyboardButtons () {
-    ConfigKeyboardButtonsCount = jpLayout ? COUNTOFARR (ConfigKeyboardButtons_JP) : COUNTOFARR (ConfigKeyboardButtons_US);
-    ConfigKeyboardButtons      = (KeyCodePair *)malloc (ConfigKeyboardButtonsCount * sizeof (KeyCodePair));
+    ConfigKeyboardButtonsCount = jpLayout ? std::size(ConfigKeyboardButtons_JP) : std::size(ConfigKeyboardButtons_US);
+    ConfigKeyboardButtons      = static_cast<KeyCodePair *> (malloc (ConfigKeyboardButtonsCount * sizeof (KeyCodePair)));
     memcpy (ConfigKeyboardButtons, jpLayout ? ConfigKeyboardButtons_JP : ConfigKeyboardButtons_US, ConfigKeyboardButtonsCount * sizeof (KeyCodePair));
 }
 
 void
-SetConfigValue (toml_table_t *table, const char *key, Keybindings *keybind) {
-    toml_array_t *array = toml_array_in (table, key);
+SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bind) {
+    const toml_array_t *array = toml_array_in (table, key);
     if (!array) {
-        LogMessage (LOG_LEVEL_WARN, (std::string (key) + ": Cannot find array").c_str ());
+        LogMessage (LogLevel::WARN, std::string (key) + ": Cannot find array");
         return;
     }
 
-    memset (keybind, 0, sizeof (*keybind));
-    for (size_t i = 0; i < COUNTOFARR (keybind->buttons); i++)
-        keybind->buttons[i] = SDL_CONTROLLER_BUTTON_INVALID;
+    memset (key_bind, 0, sizeof (*key_bind));
+    for (size_t i           = 0; i < std::size(key_bind->buttons); i++)
+        key_bind->buttons[i] = SDL_CONTROLLER_BUTTON_INVALID;
 
-    for (size_t i = 0;; i++) {
-        toml_datum_t bind = toml_string_at (array, i);
-        if (!bind.ok) break;
-        ConfigValue value = StringToConfigEnum (bind.u.s);
-        free (bind.u.s);
+    for (int idx = 0;; idx++) {
+        const auto [ok, u] = toml_string_at (array, idx);
+        if (!ok) break;
+        const ConfigValue value = StringToConfigEnum (u.s);
+        free (u.s);
 
         switch (value.type) {
-        case keycode:
-            for (size_t i = 0; i < COUNTOFARR (keybind->keycodes); i++) {
-                if (keybind->keycodes[i] == 0) {
-                    keybind->keycodes[i] = value.keycode;
+        case keycode: {
+            for (int i = 0; i < std::size(key_bind->keycodes); i++) {
+                if (key_bind->keycodes[i] == 0) {
+                    key_bind->keycodes[i] = value.keycode;
                     break;
                 }
             }
             break;
-        case button:
-            for (size_t i = 0; i < COUNTOFARR (keybind->buttons); i++) {
-                if (keybind->buttons[i] == SDL_CONTROLLER_BUTTON_INVALID) {
-                    keybind->buttons[i] = value.button;
+        }
+        case button: {
+            for (int i = 0; i < std::size(key_bind->buttons); i++) {
+                if (key_bind->buttons[i] == SDL_CONTROLLER_BUTTON_INVALID) {
+                    key_bind->buttons[i] = value.button;
                     break;
                 }
             }
             break;
-        case axis:
-            for (size_t i = 0; i < COUNTOFARR (keybind->axis); i++) {
-                if (keybind->axis[i] == 0) {
-                    keybind->axis[i] = value.axis;
+        }
+        case axis: {
+            for (int i = 0; i < std::size(key_bind->axis); i++) {
+                if (key_bind->axis[i] == 0) {
+                    key_bind->axis[i] = value.axis;
                     break;
                 }
             }
-        case scroll:
-            for (size_t i = 0; i < COUNTOFARR (keybind->scroll); i++) {
-                if (keybind->scroll[i] == 0) {
-                    keybind->scroll[i] = value.scroll;
+        }
+        case scroll: {
+            for (int i = 0; i < std::size(key_bind->scroll); i++) {
+                if (key_bind->scroll[i] == 0) {
+                    key_bind->scroll[i] = value.scroll;
                     break;
                 }
             }
             break;
+        }
         default: break;
         }
     }
@@ -395,16 +399,15 @@ InitializePoll (HWND windowHandle) {
         if (SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0) {
             hasRumble = false;
         } else {
-            LogMessage (LOG_LEVEL_ERROR,
-                        (std::string ("SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO): ")
-                         + SDL_GetError ())
-                            .c_str ());
+            LogMessage (LogLevel::ERROR,
+                        std::string ("SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO): ")
+                         + SDL_GetError ());
             return false;
         }
     }
 
-    auto configPath = std::filesystem::current_path () / "gamecontrollerdb.txt";
-    if (SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1) LogMessage (LOG_LEVEL_ERROR, "Cannot read gamecontrollerdb.txt");
+    const auto configPath = std::filesystem::current_path () / "gamecontrollerdb.txt";
+    if (SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1) LogMessage (LogLevel::ERROR, "Cannot read gamecontrollerdb.txt");
     SDL_GameControllerEventState (SDL_ENABLE);
     SDL_JoystickEventState (SDL_ENABLE);
 
@@ -413,15 +416,15 @@ InitializePoll (HWND windowHandle) {
 
         SDL_GameController *controller = SDL_GameControllerOpen (i);
         if (!controller) {
-            LogMessage (LOG_LEVEL_WARN,
-                        (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ()).c_str ());
+            LogMessage (LogLevel::WARN,
+                        std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ());
             continue;
         }
         controllers[i] = controller;
     }
 
     window = SDL_CreateWindowFrom (windowHandle);
-    if (window == NULL) LogMessage (LOG_LEVEL_ERROR, (std::string ("SDL_CreateWindowFrom (windowHandle): ") + SDL_GetError ()).c_str ());
+    if (window == nullptr) LogMessage (LogLevel::ERROR, std::string ("SDL_CreateWindowFrom (windowHandle): ") + SDL_GetError ());
     atexit (DisposePoll);
 
     return hasRumble;
@@ -429,7 +432,7 @@ InitializePoll (HWND windowHandle) {
 
 void
 UpdatePoll (HWND windowHandle) {
-    if (windowHandle == NULL || GetForegroundWindow () != windowHandle) return;
+    if (windowHandle == nullptr || GetForegroundWindow () != windowHandle) return;
 
     memcpy (lastKeyboardState, currentKeyboardState, 255);
     memcpy (lastControllerButtonsState, currentControllerButtonsState, 21);
@@ -454,9 +457,8 @@ UpdatePoll (HWND windowHandle) {
 
             controller = SDL_GameControllerOpen (event.cdevice.which);
             if (!controller) {
-                LogMessage (LOG_LEVEL_ERROR, (std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (event.cdevice.which)
-                                              + ": " + SDL_GetError ())
-                                                 .c_str ());
+                LogMessage (LogLevel::ERROR, std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (event.cdevice.which)
+                                              + ": " + SDL_GetError ());
                 continue;
             }
             controllers[event.cdevice.which] = controller;
@@ -474,19 +476,21 @@ UpdatePoll (HWND windowHandle) {
         case SDL_CONTROLLERAXISMOTION:
             if (event.caxis.value > 1) {
                 switch (event.caxis.axis) {
-                case SDL_CONTROLLER_AXIS_LEFTX: currentControllerAxisState.LeftRight = (float)event.caxis.value / 32767; break;
-                case SDL_CONTROLLER_AXIS_LEFTY: currentControllerAxisState.LeftDown = (float)event.caxis.value / 32767; break;
-                case SDL_CONTROLLER_AXIS_RIGHTX: currentControllerAxisState.RightRight = (float)event.caxis.value / 32767; break;
-                case SDL_CONTROLLER_AXIS_RIGHTY: currentControllerAxisState.RightDown = (float)event.caxis.value / 32767; break;
-                case SDL_CONTROLLER_AXIS_TRIGGERLEFT: currentControllerAxisState.LTriggerDown = (float)event.caxis.value / 32767; break;
-                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: currentControllerAxisState.RTriggerDown = (float)event.caxis.value / 32767; break;
+                case SDL_CONTROLLER_AXIS_LEFTX: currentControllerAxisState.LeftRight = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_LEFTY: currentControllerAxisState.LeftDown = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_RIGHTX: currentControllerAxisState.RightRight = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_RIGHTY: currentControllerAxisState.RightDown = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_TRIGGERLEFT: currentControllerAxisState.LTriggerDown = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: currentControllerAxisState.RTriggerDown = static_cast<float> (event.caxis.value) / 32767; break;
+                default: break;
                 }
             } else if (event.caxis.value < -1) {
                 switch (event.caxis.axis) {
-                case SDL_CONTROLLER_AXIS_LEFTX: currentControllerAxisState.LeftLeft = (float)event.caxis.value / -32768; break;
-                case SDL_CONTROLLER_AXIS_LEFTY: currentControllerAxisState.LeftUp = (float)event.caxis.value / -32768; break;
-                case SDL_CONTROLLER_AXIS_RIGHTX: currentControllerAxisState.RightLeft = (float)event.caxis.value / -32768; break;
-                case SDL_CONTROLLER_AXIS_RIGHTY: currentControllerAxisState.RightUp = (float)event.caxis.value / -32768; break;
+                case SDL_CONTROLLER_AXIS_LEFTX: currentControllerAxisState.LeftLeft = static_cast<float> (event.caxis.value) / -32768; break;
+                case SDL_CONTROLLER_AXIS_LEFTY: currentControllerAxisState.LeftUp = static_cast<float> (event.caxis.value) / -32768; break;
+                case SDL_CONTROLLER_AXIS_RIGHTX: currentControllerAxisState.RightLeft = static_cast<float> (event.caxis.value) / -32768; break;
+                case SDL_CONTROLLER_AXIS_RIGHTY: currentControllerAxisState.RightUp = static_cast<float> (event.caxis.value) / -32768; break;
+                default: break;
                 }
             } else {
                 switch (event.caxis.axis) {
@@ -508,9 +512,11 @@ UpdatePoll (HWND windowHandle) {
                     break;
                 case SDL_CONTROLLER_AXIS_TRIGGERLEFT: currentControllerAxisState.LTriggerDown = 0; break;
                 case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: currentControllerAxisState.RTriggerDown = 0; break;
+                default: break;
                 }
             }
             break;
+        default: break;
         }
     }
 }
@@ -523,104 +529,104 @@ DisposePoll () {
 
 ConfigValue
 StringToConfigEnum (const char *value) {
-    ConfigValue rval;
+    ConfigValue rval{};
     for (size_t i = 0; i < ConfigKeyboardButtonsCount; ++i)
         if (!strcmp (value, ConfigKeyboardButtons[i].string)) {
             rval.type    = keycode;
             rval.keycode = ConfigKeyboardButtons[i].keycode;
             return rval;
         }
-    for (size_t i = 0; i < COUNTOFARR (ConfigControllerButtons); ++i)
-        if (!strcmp (value, ConfigControllerButtons[i].string)) {
+    for (const auto &[string, button_] : ConfigControllerButtons)
+        if (!strcmp (value, string)) {
             rval.type   = button;
-            rval.button = ConfigControllerButtons[i].button;
+            rval.button = button_;
             return rval;
         }
-    for (size_t i = 0; i < COUNTOFARR (ConfigControllerAXIS); ++i)
-        if (!strcmp (value, ConfigControllerAXIS[i].string)) {
+    for (const auto &[string, axis_] : ConfigControllerAXIS)
+        if (!strcmp (value, string)) {
             rval.type = axis;
-            rval.axis = ConfigControllerAXIS[i].axis;
+            rval.axis = axis_;
             return rval;
         }
-    for (size_t i = 0; i < COUNTOFARR (ConfigMouseScroll); ++i)
-        if (!strcmp (value, ConfigMouseScroll[i].string)) {
+    for (auto &[string, scroll_] : ConfigMouseScroll)
+        if (!strcmp (value, string)) {
             rval.type   = scroll;
-            rval.scroll = ConfigMouseScroll[i].scroll;
+            rval.scroll = scroll_;
             return rval;
         }
 
-    LogMessage (LOG_LEVEL_ERROR, (std::string (value) + ": Unknown value").c_str ());
+    LogMessage (LogLevel::ERROR, std::string (value) + ": Unknown value");
     return rval;
 }
 
 InternalButtonState
-GetInternalButtonState (Keybindings bindings) {
+GetInternalButtonState (const Keybindings &bindings) {
     InternalButtonState buttons = {0};
 
     for (size_t i = 0; i < ConfigKeyboardButtonsCount; i++) {
         if (bindings.keycodes[i] == 0) continue;
-        if (KeyboardIsReleased (bindings.keycodes[i])) buttons.Released = 1;
+        if (KeyboardIsReleased (bindings.keycodes[i])) buttons.Released = true;
         if (KeyboardIsDown (bindings.keycodes[i])) buttons.Down = 1;
-        if (KeyboardIsTapped (bindings.keycodes[i])) buttons.Tapped = 1;
+        if (KeyboardIsTapped (bindings.keycodes[i])) buttons.Tapped = true;
     }
-    for (size_t i = 0; i < COUNTOFARR (ConfigControllerButtons); i++) {
+    for (size_t i = 0; i < std::size(ConfigControllerButtons); i++) {
         if (bindings.buttons[i] == SDL_CONTROLLER_BUTTON_INVALID) continue;
-        if (ControllerButtonIsReleased (bindings.buttons[i])) buttons.Released = 1;
+        if (ControllerButtonIsReleased (bindings.buttons[i])) buttons.Released = true;
         if (ControllerButtonIsDown (bindings.buttons[i])) buttons.Down = 1;
-        if (ControllerButtonIsTapped (bindings.buttons[i])) buttons.Tapped = 1;
+        if (ControllerButtonIsTapped (bindings.buttons[i])) buttons.Tapped = true;
     }
-    for (size_t i = 0; i < COUNTOFARR (ConfigControllerAXIS); i++) {
+    for (size_t i = 0; i < std::size(ConfigControllerAXIS); i++) {
         if (bindings.axis[i] == 0) continue;
-        if (float val = ControllerAxisIsReleased (bindings.axis[i])) buttons.Released = val;
-        if (float val = ControllerAxisIsDown (bindings.axis[i])) buttons.Down = val;
-        if (float val = ControllerAxisIsTapped (bindings.axis[i])) buttons.Tapped = val;
+        if (const float val = ControllerAxisIsReleased (bindings.axis[i])) buttons.Released = static_cast<bool>(val); // NOLINT(*-narrowing-conversions)
+        if (const float val = ControllerAxisIsDown (bindings.axis[i])) buttons.Down = val; // NOLINT(*-narrowing-conversions)
+        if (const float val = ControllerAxisIsTapped (bindings.axis[i])) buttons.Tapped = static_cast<bool>(val); // NOLINT(*-narrowing-conversions)
     }
-    for (size_t i = 0; i < COUNTOFARR (ConfigMouseScroll); i++) {
-        if (bindings.scroll[i] == 0) continue;
-        if (GetMouseScrollIsReleased (bindings.scroll[i])) buttons.Released = 1;
-        if (GetMouseScrollIsDown (bindings.scroll[i])) buttons.Down = 1;
-        if (GetMouseScrollIsTapped (bindings.scroll[i])) buttons.Tapped = 1;
+    for (const auto i : bindings.scroll) {
+        if (i == 0) continue;
+        if (GetMouseScrollIsReleased (i)) buttons.Released = true;
+        if (GetMouseScrollIsDown (i)) buttons.Down = 1;
+        if (GetMouseScrollIsTapped (i)) buttons.Tapped = true;
     }
 
     return buttons;
 }
 
 void
-SetRumble (int left, int right, int length) {
-    for (size_t i = 0; i < COUNTOFARR (controllers); i++) {
-        if (!controllers[i] || !SDL_GameControllerHasRumble (controllers[i])) continue;
+SetRumble (const int left, const int right, const int length) {
+    for (auto & controller : controllers) {
+        if (!controller || !SDL_GameControllerHasRumble (controller)) continue;
 
-        SDL_GameControllerRumble (controllers[i], left, right, length);
+        SDL_GameControllerRumble (controller, left, right, length);
     }
 }
 
 bool
-KeyboardIsDown (uint8_t keycode) {
+KeyboardIsDown (const uint8_t keycode) {
     return currentKeyboardState[keycode];
 }
 
 bool
-KeyboardIsUp (uint8_t keycode) {
+KeyboardIsUp (const uint8_t keycode) {
     return !KeyboardIsDown (keycode);
 }
 
 bool
-KeyboardIsTapped (uint8_t keycode) {
+KeyboardIsTapped (const uint8_t keycode) {
     return KeyboardIsDown (keycode) && KeyboardWasUp (keycode);
 }
 
 bool
-KeyboardIsReleased (uint8_t keycode) {
+KeyboardIsReleased (const uint8_t keycode) {
     return KeyboardIsUp (keycode) && KeyboardWasDown (keycode);
 }
 
 bool
-KeyboardWasDown (uint8_t keycode) {
+KeyboardWasDown (const uint8_t keycode) {
     return lastKeyboardState[keycode];
 }
 
 bool
-KeyboardWasUp (uint8_t keycode) {
+KeyboardWasUp (const uint8_t keycode) {
     return !KeyboardWasDown (keycode);
 }
 
@@ -637,7 +643,7 @@ POINT
 GetLastMouseRelativePosition () { return lastMouseState.RelativePosition; }
 
 void
-SetMousePosition (POINT newPosition) {
+SetMousePosition (const POINT newPosition) {
     currentMouseState.Position = newPosition;
 }
 
@@ -662,55 +668,55 @@ GetWasMouseScrollDown () {
 }
 
 bool
-GetMouseScrollIsReleased (Scroll scroll) {
+GetMouseScrollIsReleased (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return !GetMouseScrollUp () && GetWasMouseScrollUp ();
     else return !GetMouseScrollDown () && GetWasMouseScrollDown ();
 }
 
 bool
-GetMouseScrollIsDown (Scroll scroll) {
+GetMouseScrollIsDown (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return GetMouseScrollUp ();
     else return GetMouseScrollDown ();
 }
 
 bool
-GetMouseScrollIsTapped (Scroll scroll) {
+GetMouseScrollIsTapped (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return GetMouseScrollUp () && !GetWasMouseScrollUp ();
     else return GetMouseScrollDown () && !GetWasMouseScrollDown ();
 }
 
 bool
-ControllerButtonIsDown (SDL_GameControllerButton button) {
+ControllerButtonIsDown (const SDL_GameControllerButton button) {
     return currentControllerButtonsState[button];
 }
 
 bool
-ControllerButtonIsUp (SDL_GameControllerButton button) {
+ControllerButtonIsUp (const SDL_GameControllerButton button) {
     return !ControllerButtonIsDown (button);
 }
 
 bool
-ControllerButtonWasDown (SDL_GameControllerButton button) {
+ControllerButtonWasDown (const SDL_GameControllerButton button) {
     return lastControllerButtonsState[button];
 }
 
 bool
-ControllerButtonWasUp (SDL_GameControllerButton button) {
+ControllerButtonWasUp (const SDL_GameControllerButton button) {
     return !ControllerButtonWasDown (button);
 }
 
 bool
-ControllerButtonIsTapped (SDL_GameControllerButton button) {
+ControllerButtonIsTapped (const SDL_GameControllerButton button) {
     return ControllerButtonIsDown (button) && ControllerButtonWasUp (button);
 }
 
 bool
-ControllerButtonIsReleased (SDL_GameControllerButton button) {
+ControllerButtonIsReleased (const SDL_GameControllerButton button) {
     return ControllerButtonIsUp (button) && ControllerButtonWasDown (button);
 }
 
 float
-ControllerAxisIsDown (SDLAxis axis) {
+ControllerAxisIsDown (const SDLAxis axis) {
     switch (axis) {
     case SDL_AXIS_LEFT_LEFT: return currentControllerAxisState.LeftLeft;
     case SDL_AXIS_LEFT_RIGHT: return currentControllerAxisState.LeftRight;
@@ -727,12 +733,12 @@ ControllerAxisIsDown (SDLAxis axis) {
 }
 
 bool
-ControllerAxisIsUp (SDLAxis axis) {
-    return !ControllerAxisIsDown (axis);
+ControllerAxisIsUp (const SDLAxis axis) {
+    return !static_cast<bool>(ControllerAxisIsDown (axis));
 }
 
 float
-ControllerAxisWasDown (SDLAxis axis) {
+ControllerAxisWasDown (const SDLAxis axis) {
     switch (axis) {
     case SDL_AXIS_LEFT_LEFT: return lastControllerAxisState.LeftLeft;
     case SDL_AXIS_LEFT_RIGHT: return lastControllerAxisState.LeftRight;
@@ -749,31 +755,31 @@ ControllerAxisWasDown (SDLAxis axis) {
 }
 
 bool
-ControllerAxisWasUp (SDLAxis axis) {
-    return !ControllerAxisWasDown (axis);
+ControllerAxisWasUp (const SDLAxis axis) {
+    return !static_cast<bool>(ControllerAxisWasDown (axis));
 }
 
 bool
-ControllerAxisIsTapped (SDLAxis axis) {
-    return ControllerAxisIsDown (axis) && ControllerAxisWasUp (axis);
+ControllerAxisIsTapped (const SDLAxis axis) {
+    return static_cast<bool>(ControllerAxisIsDown (axis)) && ControllerAxisWasUp (axis);
 }
 
 bool
-ControllerAxisIsReleased (SDLAxis axis) {
-    return ControllerAxisIsUp (axis) && ControllerAxisWasDown (axis);
+ControllerAxisIsReleased (const SDLAxis axis) {
+    return ControllerAxisIsUp (axis) && static_cast<bool>(ControllerAxisWasDown (axis));
 }
 
 bool
-IsButtonTapped (Keybindings bindings) {
+IsButtonTapped (const Keybindings &bindings) {
     return GetInternalButtonState (bindings).Tapped;
 }
 
 bool
-IsButtonReleased (Keybindings bindings) {
+IsButtonReleased (const Keybindings &bindings) {
     return GetInternalButtonState (bindings).Released;
 }
 
 float
-IsButtonDown (Keybindings bindings) {
+IsButtonDown (const Keybindings &bindings) {
     return GetInternalButtonState (bindings).Down;
 }

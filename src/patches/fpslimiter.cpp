@@ -15,8 +15,8 @@ static double t               = 0.0;
 static u32 i                  = 0;
 
 void
-Init (float fpsLimit) {
-    if (fpsLimit > 0) LogMessage (LOG_LEVEL_INFO, "Init Fps Limiter");
+Init (const float fpsLimit) {
+    if (fpsLimit > 0) LogMessage (LogLevel::INFO, "Init Fps Limiter");
     targetFrameTime = 1000.0 / fpsLimit;
 }
 
@@ -39,7 +39,7 @@ Update () {
                 bOnce2 = true;
                 QueryPerformanceFrequency (&PerformanceCount3);
                 i      = 0;
-                t      = 1000.0 / (double)PerformanceCount3.QuadPart;
+                t      = 1000.0 / static_cast<double> (PerformanceCount3.QuadPart);
                 auto v = t * 2147483648.0;
                 if (60000.0 > v) {
                     while (true) {
@@ -54,7 +54,7 @@ Update () {
             break;
         }
 
-        if (((double)((PerformanceCount2.QuadPart >> i) - PerformanceCount1.QuadPart) * t) >= targetFrameTime) break;
+        if ((static_cast<double> ((PerformanceCount2.QuadPart >> i) - PerformanceCount1.QuadPart) * t) >= targetFrameTime) break;
 
         SleepEx (0, 1);
     }

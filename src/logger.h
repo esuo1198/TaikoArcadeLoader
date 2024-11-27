@@ -1,65 +1,113 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#pragma once
 
-#include <stdio.h>
 #include <string>
+#include <source_location>
+#include <string_view>
+#include <windows.h>
+#include <wincon.h>
+#include <magic_enum/magic_enum.hpp>
 
-typedef enum { LOG_LEVEL_NONE = 0, LOG_LEVEL_ERROR = 1, LOG_LEVEL_WARN = 2, LOG_LEVEL_INFO = 3, LOG_LEVEL_DEBUG = 4, LOG_LEVEL_HOOKS = 5 } LogLevel;
+enum class LogLevel
+{
+    NONE = 0,
+    #ifdef ERROR
+#undef ERROR
+    ERROR,
+#endif
+    WARN,
+    INFO,
+    DEBUG,
+    HOOKS
+};
 
 /**
  * Logger Struct Used to Store Logging Preferences and State
  */
-typedef struct {
+typedef struct
+{
     LogLevel logLevel;
-    FILE *logFile;
+    FILE* logFile;
 } Logger;
 
 /* Initializes a global Logger instance. */
-void InitializeLogger (LogLevel level, bool logToFile);
+void InitializeLogger(LogLevel level, bool logToFile);
 
-/* Logs a message with file and line information, if the log level permits. */
-#define LogMessage(level, format, ...) LogMessageHandler (__FUNCTION__, __FILE__, __LINE__, level, format, ##__VA_ARGS__)
-void LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const std::string format, ...);
-void LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const std::wstring format, ...);
+void LogMessageHandler(const char* function, const char* codeFile, int codeLine, LogLevel messageLevel,
+                       const char* format, ...);
+void LogMessageHandler(const char* function, const char* codeFile, int codeLine, LogLevel messageLevel,
+                       const wchar_t* format, ...);
+
+/* *
+ * Logs a message with file and line information, if the log level permits.
+ *
+ * Use template magic to replace macros and get proper typing support...
+ */
+template <typename... Args>
+struct LogMessage
+{
+    LogMessage(const LogLevel level, const std::string_view format, Args&&... ts, const std::source_location& loc = std::source_location::current()) {
+        LogMessageHandler(loc.function_name(), loc.file_name(), loc.line(), level, format.data(), std::forward<Args>(ts)...);
+    }
+
+    LogMessage(const LogLevel level, const std::wstring_view format, Args&&... ts, const std::source_location& loc = std::source_location::current()) {
+        LogMessageHandler(loc.function_name(), loc.file_name(), loc.line(), level, format.data(), std::forward<Args>(ts)...);
+    }
+};
+
+
+template <>
+struct LogMessage<void>
+{
+    LogMessage(const LogLevel level, const std::string_view format, const std::source_location& loc = std::source_location::current()) {
+        LogMessageHandler(loc.function_name(), loc.file_name(), loc.line(), level, format.data());
+    }
+
+    LogMessage(const LogLevel level, const std::wstring_view format, const std::source_location& loc = std::source_location::current()) {
+        LogMessageHandler(loc.function_name(), loc.file_name(), loc.line(), level, format.data());
+    }
+};
+
+LogMessage(LogLevel level, std::string_view format) -> LogMessage<void>;
+
+LogMessage(LogLevel level, std::wstring_view format) -> LogMessage<void>;
+
+
+template <typename... Args>
+LogMessage(LogLevel level, std::string_view format, Args&&... ts) -> LogMessage<Args...>;
+
+template <typename... Args>
+LogMessage(LogLevel level, std::wstring_view format, Args&&... ts) -> LogMessage<Args...>;
 
 /* Converts a string to a LogLevel type. */
-LogLevel
-GetLogLevel (const std::string &logLevelStr) {
-    if (logLevelStr == "DEBUG") return LOG_LEVEL_DEBUG;
-    else if (logLevelStr == "INFO") return LOG_LEVEL_INFO;
-    else if (logLevelStr == "WARN") return LOG_LEVEL_WARN;
-    else if (logLevelStr == "ERROR") return LOG_LEVEL_ERROR;
-    else if (logLevelStr == "HOOKS") return LOG_LEVEL_HOOKS;
-    return LOG_LEVEL_NONE;
+inline LogLevel
+GetLogLevel(const std::string& logLevelStr)
+{
+    const auto level = magic_enum::enum_cast<LogLevel>(logLevelStr);
+    return level.value_or(LogLevel::NONE);
 }
 
 /* Converts a LogLevel type to a string for logging. */
-std::string
-GetLogLevelString (LogLevel messageLevel) {
-    switch (messageLevel) {
-    case LOG_LEVEL_DEBUG: return "DEBUG: ";
-    case LOG_LEVEL_INFO: return "INFO:  ";
-    case LOG_LEVEL_WARN: return "WARN:  ";
-    case LOG_LEVEL_ERROR: return "ERROR: ";
-    case LOG_LEVEL_HOOKS: return "HOOKS: ";
-    default: return "NONE: ";
-    }
+inline std::string
+GetLogLevelString(const LogLevel messageLevel)
+{
+    const auto level = magic_enum::enum_name(messageLevel);
+    return std::string(level) + ": ";
 }
 
-int
-GetLogLevelColor (LogLevel messageLevel) {
+inline int
+GetLogLevelColor(const LogLevel messageLevel)
+{
     // Colors: https://i.sstatic.net/ZG625.png
-    switch (messageLevel) {
-    case LOG_LEVEL_DEBUG: return 9;  // Pale Blue
-    case LOG_LEVEL_INFO: return 10;  // Pale Green
-    case LOG_LEVEL_WARN: return 6;   // Bright Yellow
-    case LOG_LEVEL_ERROR: return 4;  // Bright RED
-    case LOG_LEVEL_HOOKS: return 13; // Pale Purple
-    default: return 7;
+    switch (messageLevel)
+    {
+        case LogLevel::DEBUG: return FOREGROUND_BLUE | FOREGROUND_INTENSITY; // Pale Blue
+        case LogLevel::INFO: return FOREGROUND_GREEN | FOREGROUND_INTENSITY; // Pale Green
+        case LogLevel::WARN: return FOREGROUND_RED | FOREGROUND_GREEN; // Bright Yellow
+        case LogLevel::ERROR: return FOREGROUND_RED; // Bright RED
+        case LogLevel::HOOKS: return FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_INTENSITY; // Pale Purple
+        default: return FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
     }
 }
 
 /* Cleans up the logger, closing files if necessary. */
-void CleanupLogger ();
-
-#endif /* LOGGER_H */
+void CleanupLogger();

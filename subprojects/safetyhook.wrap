@@ -1,7 +1,0 @@
-[wrap-git]
-url = https://github.com/cursey/safetyhook.git
-revision = v0.4.1
-method = cmake
-
-[provide]
-safetyhook = safetyhook_dep
