@@ -306,7 +306,7 @@ Init () {
     if (config_ptr) {
         const toml_table_t *config = config_ptr.get ();
         if (const auto controller = openConfigSection (config, "controller")) {
-            drumWaitPeriod = readConfigInt (controller, "wait_period", drumWaitPeriod);
+            drumWaitPeriod = (u16)readConfigInt (controller, "wait_period", drumWaitPeriod);
             analogInput    = readConfigBool (controller, "analog_input", analogInput);
             if (analogInput) LogMessage (LogLevel::WARN, "Using analog input mode. All the keyboard drum inputs have been disabled.");
         }

@@ -30,13 +30,15 @@ const std::vector<uintptr_t> memsetSizeAddresses
 void
 AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::Allocation *newBuffer) {
     const auto allocator                = safetyhook::Allocator::global ();
-    const std::vector desired_addresses = {static_cast<uint8_t *> (target_address)};
-    if (auto allocation_result              = allocator->allocate_near (desired_addresses, size); allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
+    const std::vector desired_addresses = {static_cast<u8 *> (target_address)};
+    if (auto allocation_result = allocator->allocate_near (desired_addresses, size); allocation_result.has_value ())
+        *newBuffer = std::move (*allocation_result);
 }
 
 void
 ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *newBufferAddress) {
-    for (const auto bufferAddress : bufferAddresses) { const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
+    for (const auto bufferAddress : bufferAddresses) {
+        const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
         const uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
         const intptr_t offset               = reinterpret_cast<intptr_t> (newBufferAddress) - lea_instruction_end;
         WRITE_MEMORY (lea_instruction_dst, i32, static_cast<i32> (offset));
@@ -58,8 +60,8 @@ Init () {
 
         if (auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (auto res = openConfigSection (graphics, "res")) {
-                xRes = readConfigInt (res, "x", xRes);
-                yRes = readConfigInt (res, "y", yRes);
+                xRes = (i32)readConfigInt (res, "x", xRes);
+                yRes = (i32)readConfigInt (res, "y", yRes);
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }

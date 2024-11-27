@@ -1,5 +1,4 @@
 #include <codecvt>
-#include <windows.h>
 #include "helpers.h"
 
 static void
@@ -64,8 +63,8 @@ readConfigBool (const toml_table_t *table, const std::string &key, const bool no
     return static_cast<bool> (u.b);
 }
 
-int64_t
-readConfigInt (const toml_table_t *table, const std::string &key, const int64_t notFoundValue) {
+i64
+readConfigInt (const toml_table_t *table, const std::string &key, const i64 notFoundValue) {
     const auto [ok, u] = toml_int_in (table, key.c_str ());
     if (!ok) {
         LogMessage (LogLevel::WARN, ("Could not find Int named " + key).c_str ());
@@ -86,15 +85,15 @@ readConfigString (const toml_table_t *table, const std::string &key, const std::
     return str;
 }
 
-std::vector<int64_t>
-readConfigIntArray (const toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue) {
+std::vector<i64>
+readConfigIntArray (const toml_table_t *table, const std::string &key, std::vector<i64> notFoundValue) {
     const toml_array_t *array = toml_array_in (table, key.c_str ());
     if (!array) {
         LogMessage (LogLevel::WARN, ("Could not find int Array named " + key).c_str ());
         return notFoundValue;
     }
 
-    std::vector<int64_t> ret;
+    std::vector<i64> ret;
     for (int i = 0;; i++) {
         auto [ok, u] = toml_int_at (array, i);
         if (!ok) break;
@@ -179,7 +178,7 @@ ConvertWideToUtf8 (const std::wstring &wstr) {
 }
 
 bool
-AreAllBytesZero (const uint8_t *array, const size_t offset, const size_t length) {
+AreAllBytesZero (const u8 *array, const size_t offset, const size_t length) {
     for (size_t i = 0; i < length; ++i)
         if (array[offset + i] != 0x00) return false;
     return true;

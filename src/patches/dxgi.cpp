@@ -207,7 +207,7 @@ Init () {
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
         const auto graphics = openConfigSection (config_ptr.get (), "graphics");
-        if (graphics) fpsLimit = readConfigInt (graphics, "fpslimit", fpsLimit);
+        if (graphics) fpsLimit = (i32)readConfigInt (graphics, "fpslimit", fpsLimit);
     }
 
     FpsLimiterEnable = fpsLimit > 0;

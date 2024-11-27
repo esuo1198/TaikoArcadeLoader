@@ -8,11 +8,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set default build type to Debug
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-endif()
-
 # Set warning level
 if(MSVC)
     add_compile_options(/W3)
@@ -204,11 +199,11 @@ target_link_libraries(bnusio PRIVATE
 )
 
 # Add link options
-if(MSVC)
-    target_link_options(bnusio PRIVATE /FORCE:MULTIPLE)
-else()
-    target_link_options(bnusio PRIVATE -Wl,--allow-multiple-definition)
-endif()
+# if(MSVC)
+#     target_link_options(bnusio PRIVATE /FORCE:MULTIPLE)
+# else()
+#     target_link_options(bnusio PRIVATE -Wl,--allow-multiple-definition)
+# endif()
 
 # Set runtime library to static
 if(MSVC)

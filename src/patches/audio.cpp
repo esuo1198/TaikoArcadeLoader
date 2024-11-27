@@ -7,14 +7,14 @@ extern GameVersion gameVersion;
 namespace patches::Audio {
 
 typedef struct nusc_init_config {
-    uint32_t sample_rate;
-    uint32_t buffer_size;
-    uint32_t device_mode;
-    uint32_t channel_count;
+    u32 sample_rate;
+    u32 buffer_size;
+    u32 device_mode;
+    u32 channel_count;
     const char *asio_driver_name;
     bool wasapi_disable_com;
     bool wasapi_exclusive;
-    uint32_t wasapi_exclusive_buffer_size;
+    u32 wasapi_exclusive_buffer_size;
     void *wasapi_audioses;
 } nusc_init_config_t;
 
@@ -46,7 +46,8 @@ Init () {
 
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
-    if (config_ptr) { const auto audio = openConfigSection (config_ptr.get (), "audio");
+    if (config_ptr) {
+        const auto audio = openConfigSection (config_ptr.get (), "audio");
         if (audio) {
             wasapiShared = readConfigBool (audio, "wasapi_shared", wasapiShared);
             asio         = readConfigBool (audio, "asio", asio);

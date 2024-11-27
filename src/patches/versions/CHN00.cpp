@@ -83,7 +83,7 @@ const std::vector<uintptr_t> memsetSizeAddresses       = {0x140093416, 0x1400934
 void
 AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::Allocation *newBuffer) {
     const auto allocator                = safetyhook::Allocator::global ();
-    const std::vector desired_addresses = {static_cast<uint8_t *> (target_address)};
+    const std::vector desired_addresses = {static_cast<u8 *> (target_address)};
     if (auto allocation_result = allocator->allocate_near (desired_addresses, size); allocation_result.has_value ())
         *newBuffer = std::move (*allocation_result);
 }
@@ -142,8 +142,8 @@ Init () {
 
         if (const auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (const auto res = openConfigSection (graphics, "res")) {
-                xRes = readConfigInt (res, "x", xRes);
-                yRes = readConfigInt (res, "y", yRes);
+                xRes = (i32)readConfigInt (res, "x", xRes);
+                yRes = (i32)readConfigInt (res, "y", yRes);
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }

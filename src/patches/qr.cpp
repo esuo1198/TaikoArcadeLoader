@@ -2,9 +2,6 @@
 #include "helpers.h"
 #include "poll.h"
 #include <ReadBarcode.h>
-#include <cstdint>
-#include <filesystem>
-#include <iostream>
 #include <vector>
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_WINDOWS_UTF8
@@ -78,7 +75,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                 if (auto qr = openConfigSection (config_ptr.get (), "qr")) {
                     if (auto data = openConfigSection (qr, "data")) {
                         serial   = readConfigString (data, "serial", "");
-                        type     = readConfigInt (data, "type", 0);
+                        type     = (u16)readConfigInt (data, "type", 0);
                         songNoes = readConfigIntArray (data, "song_no", songNoes);
                     }
                 }
@@ -93,12 +90,12 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             if (type == 5) {
                 std::vector<BYTE> folderData = {0xFF, 0xFF};
 
-                folderData.push_back (songNoes.size () * 2);
+                folderData.push_back (static_cast<u8> (songNoes.size ()) * 2);
 
                 folderData.push_back (static_cast<u8> (type & 0xFF));
                 folderData.push_back (static_cast<u8> ((type >> 8) & 0xFF));
 
-                for (u16 songNo : songNoes) {
+                for (i64 songNo : songNoes) {
                     folderData.push_back (static_cast<u8> (songNo & 0xFF));
                     folderData.push_back (static_cast<u8> ((songNo >> 8) & 0xFF));
                 }
@@ -160,7 +157,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             return dataSize;
         } else if (gMode == Mode::Plugin) {
             if (FARPROC getEvent = GetProcAddress (gPlugin, "GetQr")) {
-                std::vector<unsigned char> plugin_data(length);
+                std::vector<unsigned char> plugin_data (length);
                 int buf_len = reinterpret_cast<getQrEvent *> (getEvent) (length, plugin_data.data ());
                 if (0 < buf_len && buf_len <= length) {
                     std::stringstream hexStream;
@@ -179,9 +176,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             }
         }
     } else if (qrPluginRegistered) {
-        for (auto plugin : qrPlugins) {
+        for (auto plugin : qrPlugins)
             if (FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr")) ((event *)usingQrEvent) ();
-        }
     }
     return 0;
 }
@@ -210,7 +206,8 @@ Update () {
             gState = State::CopyWait;
             gMode  = Mode::Image;
         } else if (qrPluginRegistered) {
-            for (const auto plugin : qrPlugins) { const FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
+            for (const auto plugin : qrPlugins) {
+                const FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
                 if (checkEvent && ((checkQrEvent *)checkEvent) ()) {
                     gState  = State::CopyWait;
                     gMode   = Mode::Plugin;
@@ -231,7 +228,8 @@ Init () {
         return;
     }
 
-    for (auto plugin : plugins) { const FARPROC initEvent = GetProcAddress (plugin, "InitQr");
+    for (auto plugin : plugins) {
+        const FARPROC initEvent = GetProcAddress (plugin, "InitQr");
         if (initEvent) ((initQrEvent *)initEvent) (gameVersion);
 
         const FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr");

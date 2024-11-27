@@ -126,7 +126,7 @@ CreateCard () {
     LogMessage (LogLevel::INFO, "Creating card.ini");
     constexpr char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     char buf[64]                       = {0};
-    srand (time (nullptr));
+    srand ((unsigned int)time (nullptr));
 
     std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
     WritePrivateProfileStringA ("card", "accessCode1", buf, ".\\card.ini");

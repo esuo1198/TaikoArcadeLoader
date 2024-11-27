@@ -52,7 +52,7 @@ HOOK (i64, DeviceCheck, ASLR (0x140464FC0), i64 a1, i64 a2, i64 a3) {
     return originalDeviceCheck (a1, a2, a3);
 }
 
-int
+i64
 GetUserStatus () {
     if (appAccessor) {
         if (const u64 playDataManager = RefPlayDataManager (appAccessor)) return GetUserCount (playDataManager);
@@ -220,21 +220,21 @@ get_bank_id (const std::string &bankName) {
 }
 
 void
-check_voice_tail (const std::string &bankName, uint8_t *pBinfBlock, std::map<std::string, bool> &voiceExist, const std::string &tail) {
+check_voice_tail (const std::string &bankName, u8 *pBinfBlock, std::map<std::string, bool> &voiceExist, const std::string &tail) {
     // check if any voice_xxx.nus3bank has xxx_cn audio inside while loading
     if (enableSwitchVoice && bankName.starts_with ("voice_")) {
         const int binfLength = *reinterpret_cast<int *> (pBinfBlock + 4);
-        uint8_t *pGrpBlock   = pBinfBlock + 8 + binfLength;
+        u8 *pGrpBlock        = pBinfBlock + 8 + binfLength;
         const int grpLength  = *reinterpret_cast<int *> (pGrpBlock + 4);
-        uint8_t *pDtonBlock  = pGrpBlock + 8 + grpLength;
+        u8 *pDtonBlock       = pGrpBlock + 8 + grpLength;
         const int dtonLength = *reinterpret_cast<int *> (pDtonBlock + 4);
-        uint8_t *pToneBlock  = pDtonBlock + 8 + dtonLength;
+        u8 *pToneBlock       = pDtonBlock + 8 + dtonLength;
         const int toneSize   = *reinterpret_cast<int *> (pToneBlock + 8);
-        uint8_t *pToneBase   = pToneBlock + 12;
+        u8 *pToneBase        = pToneBlock + 12;
         for (int i = 0; i < toneSize; i++) {
             if (*reinterpret_cast<int *> (pToneBase + i * 8 + 4) <= 0x0C) continue; // skip empty space
-            uint8_t *currToneBase = pToneBase + *reinterpret_cast<int *> (pToneBase + i * 8);
-            int titleOffset       = -1;
+            u8 *currToneBase = pToneBase + *reinterpret_cast<int *> (pToneBase + i * 8);
+            int titleOffset  = -1;
             switch (*currToneBase) {
             case 0xFF: titleOffset = 9; break; // audio mark
             case 0x7F: titleOffset = 5; break; // randomizer mark
@@ -255,13 +255,13 @@ check_voice_tail (const std::string &bankName, uint8_t *pBinfBlock, std::map<std
 MID_HOOK (GenNus3bankId, ASLR (0x1407B97BD), SafetyHookContext &ctx) {
     LogMessage (LogLevel::HOOKS, "GenNus3bankId was called");
     std::lock_guard<std::mutex> lock (nus3bankMtx);
-    if (reinterpret_cast<uint8_t **> (ctx.rcx + 8) != nullptr) {
-        uint8_t *pNus3bankFile = *reinterpret_cast<uint8_t **> (ctx.rcx + 8);
+    if (reinterpret_cast<u8 **> (ctx.rcx + 8) != nullptr) {
+        u8 *pNus3bankFile = *reinterpret_cast<u8 **> (ctx.rcx + 8);
         if (pNus3bankFile[0] == 'N' && pNus3bankFile[1] == 'U' && pNus3bankFile[2] == 'S' && pNus3bankFile[3] == '3') {
             const int tocLength  = *reinterpret_cast<int *> (pNus3bankFile + 16);
-            uint8_t *pPropBlock  = pNus3bankFile + 20 + tocLength;
+            u8 *pPropBlock       = pNus3bankFile + 20 + tocLength;
             const int propLength = *reinterpret_cast<int *> (pPropBlock + 4);
-            uint8_t *pBinfBlock  = pPropBlock + 8 + propLength;
+            u8 *pBinfBlock       = pPropBlock + 8 + propLength;
             const std::string bankName (reinterpret_cast<char *> (pBinfBlock + 0x11));
             check_voice_tail (bankName, pBinfBlock, voiceCnExist, "_cn");
             ctx.rax = get_bank_id (bankName);
@@ -352,7 +352,7 @@ HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
 float soundRate = 1.0F;
 HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
     LogMessage (LogLevel::HOOKS, "SetMasterVolumeSpeaker was called");
-    soundRate = a1 <= 100 ? 1.0F : a1 / 100.0;
+    soundRate = (float)(a1 <= 100 ? 1.0F : a1 / 100.0);
     return originalSetMasterVolumeSpeaker (a1 > 100 ? 100 : a1);
 }
 
@@ -389,7 +389,7 @@ const std::vector<uintptr_t> memsetSizeAddresses       = {0x1400ABE26, 0x1400ABE
 void
 AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::Allocation *newBuffer) {
     const auto allocator                = safetyhook::Allocator::global ();
-    const std::vector desired_addresses = {static_cast<uint8_t *> (target_address)};
+    const std::vector desired_addresses = {static_cast<u8 *> (target_address)};
     auto allocation_result              = allocator->allocate_near (desired_addresses, size);
     if (allocation_result.has_value ()) *newBuffer = std::move (*allocation_result);
 }
@@ -428,8 +428,8 @@ Init () {
 
         if (auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (auto res = openConfigSection (graphics, "res")) {
-                xRes = readConfigInt (res, "x", xRes);
-                yRes = readConfigInt (res, "y", yRes);
+                xRes = (i32)readConfigInt (res, "x", xRes);
+                yRes = (i32)readConfigInt (res, "y", yRes);
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }

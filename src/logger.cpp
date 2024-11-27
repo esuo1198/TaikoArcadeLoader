@@ -15,17 +15,6 @@
 */
 
 #include "logger.h"
-#include "helpers.h"
-#include <ctime>
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-/*#include <plog/Log.h>
-#include <plog/Init.h>
-#include <plog/Formatters/TxtFormatter.h>
-#include <plog/Appenders/ConsoleAppender.h>
-#include <plog/Appenders/RollingFileAppender.h>*/
 
 static Logger *loggerInstance = nullptr;
 void *consoleHandle           = nullptr;

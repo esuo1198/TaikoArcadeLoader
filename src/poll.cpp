@@ -1,12 +1,10 @@
 #include "poll.h"
-#include "helpers.h"
-#include <filesystem>
 
 extern bool jpLayout;
 
 struct KeyCodePair {
     const char *string;
-    uint8_t keycode;
+    u8 keycode;
 };
 size_t ConfigKeyboardButtonsCount      = 0;
 KeyCodePair *ConfigKeyboardButtons     = nullptr;
@@ -438,7 +436,7 @@ UpdatePoll (HWND windowHandle) {
     lastMouseState          = currentMouseState;
     lastControllerAxisState = currentControllerAxisState;
 
-    for (uint8_t i = 0; i < 0xFF; i++)
+    for (u8 i = 0; i < 0xFF; i++)
         currentKeyboardState[i] = GetAsyncKeyState (i) != 0;
 
     currentMouseState.ScrolledUp   = false;
@@ -603,32 +601,32 @@ SetRumble (const int left, const int right, const int length) {
 }
 
 bool
-KeyboardIsDown (const uint8_t keycode) {
+KeyboardIsDown (const u8 keycode) {
     return currentKeyboardState[keycode];
 }
 
 bool
-KeyboardIsUp (const uint8_t keycode) {
+KeyboardIsUp (const u8 keycode) {
     return !KeyboardIsDown (keycode);
 }
 
 bool
-KeyboardIsTapped (const uint8_t keycode) {
+KeyboardIsTapped (const u8 keycode) {
     return KeyboardIsDown (keycode) && KeyboardWasUp (keycode);
 }
 
 bool
-KeyboardIsReleased (const uint8_t keycode) {
+KeyboardIsReleased (const u8 keycode) {
     return KeyboardIsUp (keycode) && KeyboardWasDown (keycode);
 }
 
 bool
-KeyboardWasDown (const uint8_t keycode) {
+KeyboardWasDown (const u8 keycode) {
     return lastKeyboardState[keycode];
 }
 
 bool
-KeyboardWasUp (const uint8_t keycode) {
+KeyboardWasUp (const u8 keycode) {
     return !KeyboardWasDown (keycode);
 }
 

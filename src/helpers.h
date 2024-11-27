@@ -175,7 +175,7 @@ inline bool sendFlag = false;
         DWORD oldProtect;                                                                          \
         VirtualProtect ((void *)(location), (size_t)(count), PAGE_EXECUTE_READWRITE, &oldProtect); \
         for (size_t i = 0; i < (size_t)(count); i++)                                               \
-            *((uint8_t *)(location) + i) = 0x90;                                                   \
+            *((u8 *)(location) + i) = 0x90;                                                        \
         VirtualProtect ((void *)(location), (size_t)(count), oldProtect, &oldProtect);             \
     }
 
@@ -184,7 +184,7 @@ inline bool sendFlag = false;
         DWORD oldProtect;                                                                          \
         VirtualProtect ((void *)(location), (size_t)(count), PAGE_EXECUTE_READWRITE, &oldProtect); \
         for (size_t i = 0; i < (size_t)(count); i++)                                               \
-            *((uint8_t *)(location) + i) = 0x00;                                                   \
+            *((u8 *)(location) + i) = 0x00;                                                        \
         VirtualProtect ((void *)(location), (size_t)(count), oldProtect, &oldProtect);             \
     }
 
@@ -193,12 +193,12 @@ inline bool sendFlag = false;
 toml_table_t *openConfig (const std::filesystem::path &path);
 toml_table_t *openConfigSection (const toml_table_t *config, const std::string &sectionName);
 bool readConfigBool (const toml_table_t *table, const std::string &key, bool notFoundValue);
-int64_t readConfigInt (const toml_table_t *table, const std::string &key, int64_t notFoundValue);
+i64 readConfigInt (const toml_table_t *table, const std::string &key, i64 notFoundValue);
 std::string readConfigString (const toml_table_t *table, const std::string &key, const std::string &notFoundValue);
-std::vector<int64_t> readConfigIntArray (const toml_table_t *table, const std::string &key, std::vector<int64_t> notFoundValue);
+std::vector<i64> readConfigIntArray (const toml_table_t *table, const std::string &key, std::vector<i64> notFoundValue);
 std::wstring replace (const std::wstring &orignStr, const std::wstring &oldStr, const std::wstring &newStr);
 std::string replace (const std::string &orignStr, const std::string &oldStr, const std::string &newStr);
 const char *GameVersionToString (GameVersion version);
 const char *languageStr (int language);
 std::string ConvertWideToUtf8 (const std::wstring &wstr);
-bool AreAllBytesZero (const uint8_t *array, size_t offset, size_t length);
+bool AreAllBytesZero (const u8 *array, size_t offset, size_t length);

@@ -1,9 +1,11 @@
 #pragma once
 
-#include <string>
+#include "helpers.h"
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 #include <source_location>
 #include <string_view>
-#include <windows.h>
 #include <wincon.h>
 #include <magic_enum/magic_enum.hpp>
 

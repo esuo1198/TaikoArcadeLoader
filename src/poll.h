@@ -1,8 +1,6 @@
 #pragma once
-#include <cstdint>
-#include <windows.h>
 #include <SDL.h>
-#include <toml.h>
+#include "helpers.h"
 
 enum SDLAxis {
     SDL_AXIS_NULL,
@@ -35,7 +33,7 @@ struct SDLAxisState {
 enum Scroll { MOUSE_SCROLL_INVALID, MOUSE_SCROLL_UP, MOUSE_SCROLL_DOWN };
 
 struct Keybindings {
-    uint8_t keycodes[255];
+    u8 keycodes[255];
     SDL_GameControllerButton buttons[255];
     SDLAxis axis[255];
     Scroll scroll[2];
@@ -46,7 +44,7 @@ enum EnumType { none, keycode, button, axis, scroll };
 struct ConfigValue {
     EnumType type;
     union {
-        uint8_t keycode;
+        u8 keycode;
         SDL_GameControllerButton button;
         SDLAxis axis;
         Scroll scroll;
@@ -68,12 +66,12 @@ void SetConfigValue (const toml_table_t *table, const char *key, Keybindings *ke
 InternalButtonState GetInternalButtonState (const Keybindings &bindings);
 void SetRumble (int left, int right, int length);
 
-bool KeyboardIsDown (uint8_t keycode);
-bool KeyboardIsUp (uint8_t keycode);
-bool KeyboardIsTapped (uint8_t keycode);
-bool KeyboardIsReleased (uint8_t keycode);
-bool KeyboardWasDown (uint8_t keycode);
-bool KeyboardWasUp (uint8_t keycode);
+bool KeyboardIsDown (u8 keycode);
+bool KeyboardIsUp (u8 keycode);
+bool KeyboardIsTapped (u8 keycode);
+bool KeyboardIsReleased (u8 keycode);
+bool KeyboardWasDown (u8 keycode);
+bool KeyboardWasUp (u8 keycode);
 POINT GetMousePosition ();
 POINT GetLastMousePosition ();
 POINT GetMouseRelativePosition ();
