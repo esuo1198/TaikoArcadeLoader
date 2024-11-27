@@ -65,7 +65,7 @@ void DisposePoll ();
 void SetKeyboardButtons ();
 ConfigValue StringToConfigEnum (const char *value);
 void SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bind);
-InternalButtonState GetInternalButtonState (const Keybindings& bindings);
+InternalButtonState GetInternalButtonState (const Keybindings &bindings);
 void SetRumble (int left, int right, int length);
 
 bool KeyboardIsDown (uint8_t keycode);
@@ -98,6 +98,6 @@ float ControllerAxisWasDown (SDLAxis axis);
 bool ControllerAxisWasUp (SDLAxis axis);
 bool ControllerAxisIsTapped (SDLAxis axis);
 bool ControllerAxisIsReleased (SDLAxis axis);
-bool IsButtonTapped (const Keybindings& bindings);
-bool IsButtonReleased (const Keybindings& bindings);
-float IsButtonDown (const Keybindings& bindings);
+bool IsButtonTapped (const Keybindings &bindings);
+bool IsButtonReleased (const Keybindings &bindings);
+float IsButtonDown (const Keybindings &bindings);

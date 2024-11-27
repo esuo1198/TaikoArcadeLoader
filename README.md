@@ -111,22 +111,24 @@ Enhanced original option:
 
 * Louder volume (Speaker Volume is now up to 300%, **WARNING: May damage your speakers**)
 
-## Building
+## Building Manually
 
-TaikoArcadeLoader can be a bit tricky to build if you've never done it before.  
-Go to the TaikoArcadeLoader folder and run the following commands:
+To compile TaikoArcadeLoader, you'll need to install [MSVC](https://aka.ms/vs/17/release/vs_BuildTools.exe).
+
+Loading this project in cliON or vscode with the cmake tools addon should then allow you to build the project.  
+If you want to build yourself, here are some instructions on how to do this from a cmd shell.
+
+Clone this repository, open *cmd* and run the following commands:
 
 ```bash
-apt install -y npm mingw-w64 ninja-build nasm 7zip cmake python3-pip
-pip3 install meson
+# Load the MSVC environment (Change this to your actual vcvarsall.bat path)
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-npm install n -g && n latest && npm install --global xpm@latest
-npx xpm init && npx xpm install @xpack-dev-tools/mingw-w64-gcc@latest
+# Configure the build folder (this is only needed the first time)
+cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
 
-# make sure you're in the TaikoArcadeLoader folder before running this
-export PATH=`pwd`/xpacks/.bin:$PATH
-make clean-setup
+# Build TaikoArcadeLoader
+cmake --build build --config Release 
 ```
 
-Once that's done, run `make` to build TAL.  
-The output will be written in the `out` folder.
+The compiled build of TaikoArcadeLoader will be written in the `out` folder.

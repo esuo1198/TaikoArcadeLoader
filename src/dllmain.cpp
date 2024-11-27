@@ -125,7 +125,7 @@ void
 CreateCard () {
     LogMessage (LogLevel::INFO, "Creating card.ini");
     constexpr char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    char buf[64]                   = {0};
+    char buf[64]                       = {0};
     srand (time (nullptr));
 
     std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
@@ -148,11 +148,12 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
         InitializeLogger (GetLogLevel (logLevelStr), logToFile);
         LogMessage (LogLevel::INFO, "Loading config...");
 
-        std::string version              = "auto";
+        std::string version                    = "auto";
         const std::filesystem::path configPath = std::filesystem::current_path () / "config.toml";
         const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
-        if (config_ptr) { const toml_table_t *config = config_ptr.get ();
-            if (const auto amauthConfig          = openConfigSection (config, "amauth")) {
+        if (config_ptr) {
+            const toml_table_t *config = config_ptr.get ();
+            if (const auto amauthConfig = openConfigSection (config, "amauth")) {
                 server      = readConfigString (amauthConfig, "server", server);
                 port        = readConfigString (amauthConfig, "port", port);
                 chassisId   = readConfigString (amauthConfig, "chassis_id", chassisId);
@@ -212,8 +213,8 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
         if (const auto pluginPath = std::filesystem::current_path () / "plugins"; std::filesystem::exists (pluginPath)) {
             for (const auto &entry : std::filesystem::directory_iterator (pluginPath)) {
                 if (entry.path ().extension () == ".dll") {
-                    auto name       = entry.path ().wstring ();
-                    auto shortName  = entry.path ().filename ().wstring ();
+                    auto name      = entry.path ().wstring ();
+                    auto shortName = entry.path ().filename ().wstring ();
                     if (HMODULE hModule = LoadLibraryW (name.c_str ()); !hModule) {
                         LogMessage (LogLevel::ERROR, L"Failed to load plugin " + shortName);
                     } else {

@@ -50,7 +50,7 @@ InitializeLogger (const LogLevel level, const bool logToFile) {
 
     if (logToFile) {
         loggerInstance->logFile = fopen ("TaikoArcadeLoader.log", "w"); // Open in write mode
-        if (!loggerInstance->logFile) LogMessage (LogLevel::WARN, std::string("Failed to open TaikoArcadeLoader.log for writing."));
+        if (!loggerInstance->logFile) LogMessage (LogLevel::WARN, std::string ("Failed to open TaikoArcadeLoader.log for writing."));
     } else loggerInstance->logFile = nullptr; // No file logging
 
     /*consoleAppender = std::make_unique<plog::ConsoleAppender<plog::TxtFormatter>> ();
@@ -62,11 +62,9 @@ InitializeLogger (const LogLevel level, const bool logToFile) {
 }
 
 void
-LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const char* format, ...) {
+LogMessageHandler (const char *function, const char *codeFile, int codeLine, LogLevel messageLevel, const char *format, ...) {
     // Return if no logger or log level is too high
-    if (loggerInstance == nullptr || messageLevel > loggerInstance->logLevel) {
-        return;
-    }
+    if (loggerInstance == nullptr || messageLevel > loggerInstance->logLevel) return;
 
     // Lock for thread safety
     std::lock_guard lock (logMutex);
@@ -75,9 +73,9 @@ LogMessageHandler (const char *function, const char *codeFile, int codeLine, Log
     va_list args;
     va_start (args, format);
     int requiredSize = vsnprintf (nullptr, 0, format, args) + 1; // +1 for null terminator
-    std::unique_ptr<char[]> buffer (new char[requiredSize]);              // Allocate buffer dynamically
+    std::unique_ptr<char[]> buffer (new char[requiredSize]);     // Allocate buffer dynamically
     vsnprintf (buffer.get (), requiredSize, format, args);       // Format the string
-    std::string formattedMessage (buffer.get ());                         // Convert to std::string
+    std::string formattedMessage (buffer.get ());                // Convert to std::string
     va_end (args);
 
     // Determine log type string
@@ -97,12 +95,12 @@ LogMessageHandler (const char *function, const char *codeFile, int codeLine, Log
     std::string logMessage = logStream.str ();
 
     // Print the log message
-    std::cout << "[" << timeStamp.str () << "] ";                             // Timestamp
-    SetConsoleTextAttribute (consoleHandle, GetLogLevelColor (messageLevel)); // Set Level color
-    std::cout << logType;                                                     // Level
-    SetConsoleTextAttribute (consoleHandle, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);         // Reset console color
-    std::cout << logMessage << std::endl;                                     // Log message
-    std::cout.flush ();                                                       // Flush to ensure immediate writing
+    std::cout << "[" << timeStamp.str () << "] ";                                                                        // Timestamp
+    SetConsoleTextAttribute (consoleHandle, GetLogLevelColor (messageLevel));                                            // Set Level color
+    std::cout << logType;                                                                                                // Level
+    SetConsoleTextAttribute (consoleHandle, FOREGROUND_BLUE | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY); // Reset console color
+    std::cout << logMessage << std::endl;                                                                                // Log message
+    std::cout.flush (); // Flush to ensure immediate writing
 
     if (loggerInstance->logFile != nullptr) {
         fprintf (loggerInstance->logFile, "[%s] %s%s\n", timeStamp.str ().c_str (), logType.c_str (), logMessage.c_str ());
@@ -111,7 +109,7 @@ LogMessageHandler (const char *function, const char *codeFile, int codeLine, Log
 }
 
 void
-LogMessageHandler (const char *function, const char *codeFile, const int codeLine, const LogLevel messageLevel, const wchar_t* format, ...) {
+LogMessageHandler (const char *function, const char *codeFile, const int codeLine, const LogLevel messageLevel, const wchar_t *format, ...) {
     const std::string utf8Message = ConvertWideToUtf8 (format); // Convert wide string to UTF-8
 
     va_list args;

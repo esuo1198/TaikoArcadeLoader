@@ -135,7 +135,7 @@ SDLAxis analogBindings[] = {
 u16
 bnusio_GetAnalogIn (const u8 which) {
     if (analogInput) {
-        if (const u16 analogValue = static_cast<u16>(32768 * ControllerAxisIsDown(analogBindings[which])); analogValue > 100) return analogValue;
+        if (const u16 analogValue = static_cast<u16> (32768 * ControllerAxisIsDown (analogBindings[which])); analogValue > 100) return analogValue;
         return 0;
     }
     const auto button = analogButtons[which];
@@ -154,7 +154,7 @@ bnusio_GetAnalogIn (const u8 which) {
                 buttonWaitPeriodP2 = drumWaitPeriod;
             }
 
-            const u16 hitValue       = !valueStates[which] ? 50 : 51;
+            const u16 hitValue = !valueStates[which] ? 50 : 51;
             valueStates[which] = !valueStates[which];
             return (hitValue << 15) / 100 + 1;
         }
@@ -174,7 +174,7 @@ bnusio_GetAnalogIn (const u8 which) {
         if (isP1) buttonWaitPeriodP1 = drumWaitPeriod;
         else buttonWaitPeriodP2 = drumWaitPeriod;
 
-        const u16 hitValue       = !valueStates[which] ? 50 : 51;
+        const u16 hitValue = !valueStates[which] ? 50 : 51;
         valueStates[which] = !valueStates[which];
         return (hitValue << 15) / 100 + 1;
     } else {
@@ -288,9 +288,9 @@ HOOK (u64, bngrw_ReqWaitTouch, PROC_ADDRESS ("bngrw.dll", "BngRwReqWaitTouch"), 
     if (emulateCardReader) {
         waitingForTouch = true;
         touchData       = _touchData;
-        for (const auto plugin : plugins) {
-            if (const FARPROC touchEvent = GetProcAddress (plugin, "WaitTouch")) reinterpret_cast<waitTouchEvent *> (touchEvent) (_callback, _touchData);
-        }
+        for (const auto plugin : plugins)
+            if (const FARPROC touchEvent = GetProcAddress (plugin, "WaitTouch"))
+                reinterpret_cast<waitTouchEvent *> (touchEvent) (_callback, _touchData);
         return 1;
     }
     // This is called when we use an original card reader and acceptInvalidCards is set to true
@@ -303,8 +303,9 @@ Init () {
 
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
-    if (config_ptr) { const toml_table_t *config = config_ptr.get ();
-        if (const auto controller      = openConfigSection (config, "controller")) {
+    if (config_ptr) {
+        const toml_table_t *config = config_ptr.get ();
+        if (const auto controller = openConfigSection (config, "controller")) {
             drumWaitPeriod = readConfigInt (controller, "wait_period", drumWaitPeriod);
             analogInput    = readConfigBool (controller, "analog_input", analogInput);
             if (analogInput) LogMessage (LogLevel::WARN, "Using analog input mode. All the keyboard drum inputs have been disabled.");
@@ -313,7 +314,8 @@ Init () {
 
     const auto keyConfigPath = std::filesystem::current_path () / "keyconfig.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> keyConfig_ptr (openConfig (keyConfigPath), toml_free);
-    if (keyConfig_ptr) { const toml_table_t *keyConfig = keyConfig_ptr.get ();
+    if (keyConfig_ptr) {
+        const toml_table_t *keyConfig = keyConfig_ptr.get ();
         SetConfigValue (keyConfig, "EXIT", &EXIT);
 
         SetConfigValue (keyConfig, "TEST", &TEST);
@@ -430,14 +432,13 @@ Update () {
         windowHandle = FindWindowA ("nuFoundation.Window", nullptr);
         InitializePoll (windowHandle);
         if (autoIme) {
-            currentLayout  = GetKeyboardLayout (0);
+            currentLayout        = GetKeyboardLayout (0);
             const auto engLayout = LoadKeyboardLayout (TEXT ("00000409"), KLF_ACTIVATE);
             ActivateKeyboardLayout (engLayout, KLF_SETFORPROCESS);
         }
 
-        for (const auto plugin : plugins) {
+        for (const auto plugin : plugins)
             if (const auto initEvent = GetProcAddress (plugin, "Init")) initEvent ();
-        }
 
         inited = true;
     }
@@ -483,9 +484,8 @@ Update () {
         }
     }
 
-    for (const auto plugin : plugins) {
+    for (const auto plugin : plugins)
         if (const auto updateEvent = GetProcAddress (plugin, "Update")) updateEvent ();
-    }
 
     patches::Qr::Update ();
 
@@ -495,9 +495,8 @@ Update () {
 void
 Close () {
     if (autoIme) ActivateKeyboardLayout (currentLayout, KLF_SETFORPROCESS);
-    for (const auto plugin : plugins) {
+    for (const auto plugin : plugins)
         if (const FARPROC exitEvent = GetProcAddress (plugin, "Exit")) reinterpret_cast<event *> (exitEvent) ();
-    }
 
     CleanupLogger ();
 }

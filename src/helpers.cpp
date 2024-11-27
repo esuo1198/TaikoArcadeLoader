@@ -1,11 +1,11 @@
-#include <fstream>
 #include <codecvt>
 #include <windows.h>
 #include "helpers.h"
 
 static void
 toml_myfree (void *p) {
-    if (p) { const char *pp = static_cast<char *> (p);
+    if (p) {
+        const char *pp = static_cast<char *> (p);
         delete[] pp;
     }
 }
@@ -106,8 +106,8 @@ readConfigIntArray (const toml_table_t *table, const std::string &key, std::vect
 
 std::wstring
 replace (const std::wstring &orignStr, const std::wstring &oldStr, const std::wstring &newStr) {
-    size_t pos                        = 0;
-    std::wstring tempStr              = orignStr;
+    size_t pos                              = 0;
+    std::wstring tempStr                    = orignStr;
     const std::wstring::size_type newStrLen = newStr.length ();
     const std::wstring::size_type oldStrLen = oldStr.length ();
     while (true) {
@@ -123,8 +123,8 @@ replace (const std::wstring &orignStr, const std::wstring &oldStr, const std::ws
 
 std::string
 replace (const std::string &orignStr, const std::string &oldStr, const std::string &newStr) {
-    size_t pos                       = 0;
-    std::string tempStr              = orignStr;
+    size_t pos                             = 0;
+    std::string tempStr                    = orignStr;
     const std::string::size_type newStrLen = newStr.length ();
     const std::string::size_type oldStrLen = oldStr.length ();
     while (true) {
@@ -162,18 +162,18 @@ languageStr (const int language) {
 
 std::string
 ConvertWideToUtf8 (const std::wstring &wstr) {
-    if (wstr.empty()) return {};
+    if (wstr.empty ()) return {};
 
     // Determine the size of the resulting UTF-8 string
-    const int utf8Size = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    const int utf8Size = WideCharToMultiByte (CP_UTF8, 0, wstr.c_str (), -1, nullptr, 0, nullptr, nullptr);
     if (utf8Size <= 0) {
-        LogMessage(LogLevel::ERROR, "Failed to convert wide string to UTF-8");
+        LogMessage (LogLevel::ERROR, "Failed to convert wide string to UTF-8");
         return {};
     }
 
     // Allocate buffer and perform the conversion
-    std::string utf8Str(utf8Size, '\0'); // -1 to exclude null terminator
-    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, data(utf8Str), utf8Size, nullptr, nullptr);
+    std::string utf8Str (utf8Size, '\0'); // -1 to exclude null terminator
+    WideCharToMultiByte (CP_UTF8, 0, wstr.c_str (), -1, data (utf8Str), utf8Size, nullptr, nullptr);
 
     return utf8Str;
 }

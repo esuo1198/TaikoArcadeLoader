@@ -1,7 +1,6 @@
 // ReSharper disable CppTooWideScopeInitStatement
 #include "helpers.h"
 #include "../patches.h"
-#include <safetyhook.hpp>
 
 namespace patches::JPN39 {
 int language = 0;
@@ -63,8 +62,7 @@ GetUserStatus () {
 
 HOOK (i64, AvailableMode_Collabo024, ASLR (0x1402DE710), i64 a1) {
     LogMessage (LogLevel::HOOKS, "AvailableMode_Collabo024 was called");
-    if (const int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode"); tournamentMode == 1)
-        return originalAvailableMode_Collabo024 (a1);
+    if (const int tournamentMode = TestMode::ReadTestModeValue (L"TournamentMode"); tournamentMode == 1) return originalAvailableMode_Collabo024 (a1);
     const int status = TestMode::ReadTestModeValue (L"ModModeCollabo024");
     if (status == 1 && GetUserStatus () == 1) return lua_pushbool (a1, true);
     return originalAvailableMode_Collabo024 (a1);
@@ -180,7 +178,7 @@ CHANGE_RESULT_INDEX_HOOK (ChangeResultDataIndex_AprilFool, ASLR (0x140176716), r
 HOOK (i64, GetLanguage, ASLR (0x140024AC0), i64 a1) {
     LogMessage (LogLevel::HOOKS, "GetLanguage was called");
     const auto result = originalGetLanguage (a1);
-    language    = *reinterpret_cast<u32 *> (result);
+    language          = *reinterpret_cast<u32 *> (result);
     return result;
 }
 HOOK (i64, GetRegionLanguage, ASLR (0x1401CE9B0), i64 a1) {
@@ -224,14 +222,15 @@ get_bank_id (const std::string &bankName) {
 void
 check_voice_tail (const std::string &bankName, uint8_t *pBinfBlock, std::map<std::string, bool> &voiceExist, const std::string &tail) {
     // check if any voice_xxx.nus3bank has xxx_cn audio inside while loading
-    if (enableSwitchVoice && bankName.starts_with ("voice_")) { const int binfLength = *reinterpret_cast<int *> (pBinfBlock + 4);
-        uint8_t *pGrpBlock                                                           = pBinfBlock + 8 + binfLength;
-        const int grpLength                                                          = *reinterpret_cast<int *> (pGrpBlock + 4);
-        uint8_t *pDtonBlock                                                          = pGrpBlock + 8 + grpLength;
-        const int dtonLength                                                         = *reinterpret_cast<int *> (pDtonBlock + 4);
-        uint8_t *pToneBlock                                                          = pDtonBlock + 8 + dtonLength;
-        const int toneSize                                                           = *reinterpret_cast<int *> (pToneBlock + 8);
-        uint8_t *pToneBase                                                           = pToneBlock + 12;
+    if (enableSwitchVoice && bankName.starts_with ("voice_")) {
+        const int binfLength = *reinterpret_cast<int *> (pBinfBlock + 4);
+        uint8_t *pGrpBlock   = pBinfBlock + 8 + binfLength;
+        const int grpLength  = *reinterpret_cast<int *> (pGrpBlock + 4);
+        uint8_t *pDtonBlock  = pGrpBlock + 8 + grpLength;
+        const int dtonLength = *reinterpret_cast<int *> (pDtonBlock + 4);
+        uint8_t *pToneBlock  = pDtonBlock + 8 + dtonLength;
+        const int toneSize   = *reinterpret_cast<int *> (pToneBlock + 8);
+        uint8_t *pToneBase   = pToneBlock + 12;
         for (int i = 0; i < toneSize; i++) {
             if (*reinterpret_cast<int *> (pToneBase + i * 8 + 4) <= 0x0C) continue; // skip empty space
             uint8_t *currToneBase = pToneBase + *reinterpret_cast<int *> (pToneBase + i * 8);
@@ -258,10 +257,11 @@ MID_HOOK (GenNus3bankId, ASLR (0x1407B97BD), SafetyHookContext &ctx) {
     std::lock_guard<std::mutex> lock (nus3bankMtx);
     if (reinterpret_cast<uint8_t **> (ctx.rcx + 8) != nullptr) {
         uint8_t *pNus3bankFile = *reinterpret_cast<uint8_t **> (ctx.rcx + 8);
-        if (pNus3bankFile[0] == 'N' && pNus3bankFile[1] == 'U' && pNus3bankFile[2] == 'S' && pNus3bankFile[3] == '3') { const int tocLength       = *reinterpret_cast<int *> (pNus3bankFile + 16);
-            uint8_t *pPropBlock = pNus3bankFile + 20 + tocLength;
-            const int propLength      = *reinterpret_cast<int *> (pPropBlock + 4);
-            uint8_t *pBinfBlock = pPropBlock + 8 + propLength;
+        if (pNus3bankFile[0] == 'N' && pNus3bankFile[1] == 'U' && pNus3bankFile[2] == 'S' && pNus3bankFile[3] == '3') {
+            const int tocLength  = *reinterpret_cast<int *> (pNus3bankFile + 16);
+            uint8_t *pPropBlock  = pNus3bankFile + 20 + tocLength;
+            const int propLength = *reinterpret_cast<int *> (pPropBlock + 4);
+            uint8_t *pBinfBlock  = pPropBlock + 8 + propLength;
             const std::string bankName (reinterpret_cast<char *> (pBinfBlock + 0x11));
             check_voice_tail (bankName, pBinfBlock, voiceCnExist, "_cn");
             ctx.rax = get_bank_id (bankName);
@@ -280,7 +280,8 @@ FixToneName (const std::string &bankName, std::string toneName) {
 size_t commonSize = 0;
 HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
     LogMessage (LogLevel::HOOKS, "PlaySound was called");
-    if (enableSwitchVoice && language != 0) { const std::string bankName (lua_tolstring (a1, -3, &commonSize));
+    if (enableSwitchVoice && language != 0) {
+        const std::string bankName (lua_tolstring (a1, -3, &commonSize));
         if (bankName[0] == 'v') {
             lua_pushstring (a1, FixToneName (bankName, lua_tolstring (a1, -2, &commonSize)).c_str ());
             lua_replace (a1, -3);
@@ -291,7 +292,8 @@ HOOK (i64, PlaySound, ASLR (0x1404C6DC0), i64 a1) {
 
 HOOK (i64, PlaySoundMulti, ASLR (0x1404C6D60), i64 a1) {
     LogMessage (LogLevel::HOOKS, "PlaySoundMulti was called");
-    if (enableSwitchVoice && language != 0) { const std::string bankName (const_cast<char *> (lua_tolstring (a1, -3, &commonSize)));
+    if (enableSwitchVoice && language != 0) {
+        const std::string bankName (const_cast<char *> (lua_tolstring (a1, -3, &commonSize)));
         if (bankName[0] == 'v') {
             lua_pushstring (a1, FixToneName (bankName, lua_tolstring (a1, -2, &commonSize)).c_str ());
             lua_replace (a1, -3);
@@ -312,7 +314,8 @@ FixToneNameEnso (u64 *Src, const std::string &bankName) {
 
 HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
     LogMessage (LogLevel::HOOKS, "PlaySoundEnso was called");
-    if (enableSwitchVoice && language != 0) { const std::string bankName = a1[3] > 0x10 ? std::string (*reinterpret_cast<char **> (a1)) : std::string (reinterpret_cast<char *> (a1));
+    if (enableSwitchVoice && language != 0) {
+        const std::string bankName = a1[3] > 0x10 ? std::string (*reinterpret_cast<char **> (a1)) : std::string (reinterpret_cast<char *> (a1));
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
     }
     return originalPlaySoundEnso (a1, a2, a3);
@@ -320,7 +323,8 @@ HOOK (bool, PlaySoundEnso, ASLR (0x1404ED590), u64 *a1, u64 *a2, i64 a3) {
 
 HOOK (bool, PlaySoundSpecial, ASLR (0x1404ED230), u64 *a1, u64 *a2) {
     LogMessage (LogLevel::HOOKS, "PlaySoundSpecial was called");
-    if (enableSwitchVoice && language != 0) { const std::string bankName = a1[3] > 0x10 ? std::string (*reinterpret_cast<char **> (a1)) : std::string (reinterpret_cast<char *> (a1));
+    if (enableSwitchVoice && language != 0) {
+        const std::string bankName = a1[3] > 0x10 ? std::string (*reinterpret_cast<char **> (a1)) : std::string (reinterpret_cast<char *> (a1));
         if (bankName[0] == 'v') a2 = FixToneNameEnso (a2, bankName);
     }
     return originalPlaySoundSpecial (a1, a2);
@@ -392,7 +396,8 @@ AllocateStaticBufferNear (void *target_address, const size_t size, safetyhook::A
 
 void
 ReplaceLeaBufferAddress (const std::vector<uintptr_t> &bufferAddresses, void *newBufferAddress) {
-    for (const auto bufferAddress : bufferAddresses) { const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
+    for (const auto bufferAddress : bufferAddresses) {
+        const uintptr_t lea_instruction_dst = ASLR (bufferAddress) + 3;
         const uintptr_t lea_instruction_end = ASLR (bufferAddress) + 7;
         const intptr_t offset               = reinterpret_cast<intptr_t> (newBufferAddress) - lea_instruction_end;
         WRITE_MEMORY (lea_instruction_dst, i32, static_cast<i32> (offset));
@@ -415,7 +420,7 @@ Init () {
     if (config_ptr) {
         if (auto patches = openConfigSection (config_ptr.get (), "patches")) {
             unlockSongs = readConfigBool (patches, "unlock_songs", unlockSongs);
-            if (auto jpn39  = openConfigSection (patches, "jpn39")) {
+            if (auto jpn39 = openConfigSection (patches, "jpn39")) {
                 fixLanguage = readConfigBool (jpn39, "fix_language", fixLanguage);
                 chsPatch    = readConfigBool (jpn39, "chs_patch", chsPatch);
             }

@@ -321,7 +321,7 @@ SDL_GameController *controllers[255];
 
 void
 SetKeyboardButtons () {
-    ConfigKeyboardButtonsCount = jpLayout ? std::size(ConfigKeyboardButtons_JP) : std::size(ConfigKeyboardButtons_US);
+    ConfigKeyboardButtonsCount = jpLayout ? std::size (ConfigKeyboardButtons_JP) : std::size (ConfigKeyboardButtons_US);
     ConfigKeyboardButtons      = static_cast<KeyCodePair *> (malloc (ConfigKeyboardButtonsCount * sizeof (KeyCodePair)));
     memcpy (ConfigKeyboardButtons, jpLayout ? ConfigKeyboardButtons_JP : ConfigKeyboardButtons_US, ConfigKeyboardButtonsCount * sizeof (KeyCodePair));
 }
@@ -335,7 +335,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
     }
 
     memset (key_bind, 0, sizeof (*key_bind));
-    for (size_t i           = 0; i < std::size(key_bind->buttons); i++)
+    for (size_t i = 0; i < std::size (key_bind->buttons); i++)
         key_bind->buttons[i] = SDL_CONTROLLER_BUTTON_INVALID;
 
     for (int idx = 0;; idx++) {
@@ -346,7 +346,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
 
         switch (value.type) {
         case keycode: {
-            for (int i = 0; i < std::size(key_bind->keycodes); i++) {
+            for (int i = 0; i < std::size (key_bind->keycodes); i++) {
                 if (key_bind->keycodes[i] == 0) {
                     key_bind->keycodes[i] = value.keycode;
                     break;
@@ -355,7 +355,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
             break;
         }
         case button: {
-            for (int i = 0; i < std::size(key_bind->buttons); i++) {
+            for (int i = 0; i < std::size (key_bind->buttons); i++) {
                 if (key_bind->buttons[i] == SDL_CONTROLLER_BUTTON_INVALID) {
                     key_bind->buttons[i] = value.button;
                     break;
@@ -364,7 +364,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
             break;
         }
         case axis: {
-            for (int i = 0; i < std::size(key_bind->axis); i++) {
+            for (int i = 0; i < std::size (key_bind->axis); i++) {
                 if (key_bind->axis[i] == 0) {
                     key_bind->axis[i] = value.axis;
                     break;
@@ -372,7 +372,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
             }
         }
         case scroll: {
-            for (int i = 0; i < std::size(key_bind->scroll); i++) {
+            for (int i = 0; i < std::size (key_bind->scroll); i++) {
                 if (key_bind->scroll[i] == 0) {
                     key_bind->scroll[i] = value.scroll;
                     break;
@@ -401,7 +401,7 @@ InitializePoll (HWND windowHandle) {
         } else {
             LogMessage (LogLevel::ERROR,
                         std::string ("SDL_Init (SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_VIDEO): ")
-                         + SDL_GetError ());
+                            + SDL_GetError ());
             return false;
         }
     }
@@ -416,8 +416,7 @@ InitializePoll (HWND windowHandle) {
 
         SDL_GameController *controller = SDL_GameControllerOpen (i);
         if (!controller) {
-            LogMessage (LogLevel::WARN,
-                        std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ());
+            LogMessage (LogLevel::WARN, std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (i) + ": " + SDL_GetError ());
             continue;
         }
         controllers[i] = controller;
@@ -458,7 +457,7 @@ UpdatePoll (HWND windowHandle) {
             controller = SDL_GameControllerOpen (event.cdevice.which);
             if (!controller) {
                 LogMessage (LogLevel::ERROR, std::string ("Could not open gamecontroller ") + SDL_GameControllerNameForIndex (event.cdevice.which)
-                                              + ": " + SDL_GetError ());
+                                                 + ": " + SDL_GetError ());
                 continue;
             }
             controllers[event.cdevice.which] = controller;
@@ -481,7 +480,9 @@ UpdatePoll (HWND windowHandle) {
                 case SDL_CONTROLLER_AXIS_RIGHTX: currentControllerAxisState.RightRight = static_cast<float> (event.caxis.value) / 32767; break;
                 case SDL_CONTROLLER_AXIS_RIGHTY: currentControllerAxisState.RightDown = static_cast<float> (event.caxis.value) / 32767; break;
                 case SDL_CONTROLLER_AXIS_TRIGGERLEFT: currentControllerAxisState.LTriggerDown = static_cast<float> (event.caxis.value) / 32767; break;
-                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT: currentControllerAxisState.RTriggerDown = static_cast<float> (event.caxis.value) / 32767; break;
+                case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                    currentControllerAxisState.RTriggerDown = static_cast<float> (event.caxis.value) / 32767;
+                    break;
                 default: break;
                 }
             } else if (event.caxis.value < -1) {
@@ -569,17 +570,18 @@ GetInternalButtonState (const Keybindings &bindings) {
         if (KeyboardIsDown (bindings.keycodes[i])) buttons.Down = 1;
         if (KeyboardIsTapped (bindings.keycodes[i])) buttons.Tapped = true;
     }
-    for (size_t i = 0; i < std::size(ConfigControllerButtons); i++) {
+    for (size_t i = 0; i < std::size (ConfigControllerButtons); i++) {
         if (bindings.buttons[i] == SDL_CONTROLLER_BUTTON_INVALID) continue;
         if (ControllerButtonIsReleased (bindings.buttons[i])) buttons.Released = true;
         if (ControllerButtonIsDown (bindings.buttons[i])) buttons.Down = 1;
         if (ControllerButtonIsTapped (bindings.buttons[i])) buttons.Tapped = true;
     }
-    for (size_t i = 0; i < std::size(ConfigControllerAXIS); i++) {
+    for (size_t i = 0; i < std::size (ConfigControllerAXIS); i++) {
         if (bindings.axis[i] == 0) continue;
-        if (const float val = ControllerAxisIsReleased (bindings.axis[i])) buttons.Released = static_cast<bool>(val); // NOLINT(*-narrowing-conversions)
-        if (const float val = ControllerAxisIsDown (bindings.axis[i])) buttons.Down = val; // NOLINT(*-narrowing-conversions)
-        if (const float val = ControllerAxisIsTapped (bindings.axis[i])) buttons.Tapped = static_cast<bool>(val); // NOLINT(*-narrowing-conversions)
+        if (const float val = ControllerAxisIsReleased (bindings.axis[i]))
+            buttons.Released = static_cast<bool> (val);                                                            // NOLINT(*-narrowing-conversions)
+        if (const float val = ControllerAxisIsDown (bindings.axis[i])) buttons.Down = val;                         // NOLINT(*-narrowing-conversions)
+        if (const float val = ControllerAxisIsTapped (bindings.axis[i])) buttons.Tapped = static_cast<bool> (val); // NOLINT(*-narrowing-conversions)
     }
     for (const auto i : bindings.scroll) {
         if (i == 0) continue;
@@ -593,7 +595,7 @@ GetInternalButtonState (const Keybindings &bindings) {
 
 void
 SetRumble (const int left, const int right, const int length) {
-    for (auto & controller : controllers) {
+    for (auto &controller : controllers) {
         if (!controller || !SDL_GameControllerHasRumble (controller)) continue;
 
         SDL_GameControllerRumble (controller, left, right, length);
@@ -734,7 +736,7 @@ ControllerAxisIsDown (const SDLAxis axis) {
 
 bool
 ControllerAxisIsUp (const SDLAxis axis) {
-    return !static_cast<bool>(ControllerAxisIsDown (axis));
+    return !static_cast<bool> (ControllerAxisIsDown (axis));
 }
 
 float
@@ -756,17 +758,17 @@ ControllerAxisWasDown (const SDLAxis axis) {
 
 bool
 ControllerAxisWasUp (const SDLAxis axis) {
-    return !static_cast<bool>(ControllerAxisWasDown (axis));
+    return !static_cast<bool> (ControllerAxisWasDown (axis));
 }
 
 bool
 ControllerAxisIsTapped (const SDLAxis axis) {
-    return static_cast<bool>(ControllerAxisIsDown (axis)) && ControllerAxisWasUp (axis);
+    return static_cast<bool> (ControllerAxisIsDown (axis)) && ControllerAxisWasUp (axis);
 }
 
 bool
 ControllerAxisIsReleased (const SDLAxis axis) {
-    return ControllerAxisIsUp (axis) && static_cast<bool>(ControllerAxisWasDown (axis));
+    return ControllerAxisIsUp (axis) && static_cast<bool> (ControllerAxisWasDown (axis));
 }
 
 bool

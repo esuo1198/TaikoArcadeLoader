@@ -1,6 +1,5 @@
 #include "helpers.h"
 #include "../patches.h"
-#include <safetyhook.hpp>
 
 namespace patches::JPN00 {
 

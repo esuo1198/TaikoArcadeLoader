@@ -10,7 +10,6 @@
 #include "dxgi1_5.h"
 #include "dxgi1_6.h"
 #include "helpers.h"
-#include <MinHook.h>
 
 #include "bnusio.h"
 #include "patches.h"
@@ -78,7 +77,8 @@ CreateSwapChainWrap (IDXGIFactory *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC
     const HRESULT hr = g_oldCreateSwapChain (This, pDevice, pDesc, ppSwapChain);
 
     if (*ppSwapChain) {
-        if (FpsLimiterEnable) { const auto old2        = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
+        if (FpsLimiterEnable) {
+            const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
             g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
         }
     }
@@ -92,7 +92,8 @@ CreateSwapChainForHwndWrap (IDXGIFactory2 *This, IUnknown *pDevice, const HWND h
     const HRESULT hr = g_oldCreateSwapChainForHwnd (This, pDevice, hWnd, pDesc, nullptr, pRestrictToOutput, ppSwapChain);
 
     if (*ppSwapChain) {
-        if (FpsLimiterEnable) { const auto old2         = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, Present1Wrap);
+        if (FpsLimiterEnable) {
+            const auto old2   = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, Present1Wrap);
             g_oldPresent1Wrap = (old2) ? old2 : g_oldPresent1Wrap;
         }
     }
@@ -123,7 +124,8 @@ CreateSwapChain2Wrap (IDXGIFactory2 *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DE
     const HRESULT hr = g_oldCreateSwapChain2 (This, pDevice, pDesc, ppSwapChain);
 
     if (*ppSwapChain) {
-        if (FpsLimiterEnable) { const auto old2        = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
+        if (FpsLimiterEnable) {
+            const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
             g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
         }
     }
@@ -135,9 +137,10 @@ static HRESULT WINAPI
 CreateDXGIFactory2Wrap (const UINT Flags, REFIID riid, void **ppFactory) {
     const HRESULT hr = g_origCreateDXGIFactory2 (Flags, riid, ppFactory);
 
-    if (SUCCEEDED (hr)) { const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
+    if (SUCCEEDED (hr)) {
+        const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
 
-        const auto old              = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChain2Wrap);
+        const auto old        = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChain2Wrap);
         g_oldCreateSwapChain2 = (old) ? old : g_oldCreateSwapChain2;
     }
 
@@ -162,13 +165,14 @@ CreateDXGIFactoryWrap (REFIID riid, _COM_Outptr_ void **ppFactory) {
         if (factoryType >= 0) {
             const IDXGIFactory *factory = static_cast<IDXGIFactory *> (*ppFactory);
 
-            const auto old             = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChainWrap);
+            const auto old       = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChainWrap);
             g_oldCreateSwapChain = (old) ? old : g_oldCreateSwapChain;
         }
 
-        if (factoryType >= 2) { const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
+        if (factoryType >= 2) {
+            const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
 
-            const auto old                    = HookVtableFunction (&factory->lpVtbl->CreateSwapChainForHwnd, CreateSwapChainForHwndWrap);
+            const auto old              = HookVtableFunction (&factory->lpVtbl->CreateSwapChainForHwnd, CreateSwapChainForHwndWrap);
             g_oldCreateSwapChainForHwnd = (old) ? old : g_oldCreateSwapChainForHwnd;
         }
     }
@@ -182,10 +186,11 @@ D3D11CreateDeviceAndSwapChainWrap (IDXGIAdapter *pAdapter, const D3D_DRIVER_TYPE
                                    /*const*/ DXGI_SWAP_CHAIN_DESC *pSwapChainDesc, IDXGISwapChain **ppSwapChain, ID3D11Device **ppDevice,
                                    D3D_FEATURE_LEVEL *pFeatureLevel, ID3D11DeviceContext **ppImmediateContext) {
     const HRESULT hr = g_origD3D11CreateDeviceAndSwapChain (pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion,
-                                                      pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+                                                            pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
 
     if (ppSwapChain) {
-        if (FpsLimiterEnable) { const auto old2        = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
+        if (FpsLimiterEnable) {
+            const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
             g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
         }
     }
@@ -200,7 +205,8 @@ Init () {
 
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
-    if (config_ptr) { const auto graphics = openConfigSection (config_ptr.get (), "graphics");
+    if (config_ptr) {
+        const auto graphics = openConfigSection (config_ptr.get (), "graphics");
         if (graphics) fpsLimit = readConfigInt (graphics, "fpslimit", fpsLimit);
     }
 

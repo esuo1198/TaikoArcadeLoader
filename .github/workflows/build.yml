@@ -1,25 +1,23 @@
 name: Build and upload artifact
 
-on: [ push, pull_request ]
+on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: Set up MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-      - name: Configure CMake
-        run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-      - name: Build
-        run: cmake --build build --config Release
-      - name: Copy bnusio.dll
-        run: copy build\Release\bnusio.dll dist
-      - name: Zip dist folder
-        run: powershell Compress-Archive -Path dist\* -DestinationPath dist.zip
-      - uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist.zip
+    build:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  submodules: recursive
+            - name: Set up MSVC
+              uses: ilammy/msvc-dev-cmd@v1
+            - name: Configure CMake
+              run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+            - name: Build
+              run: cmake --build build --config Release
+            - name: Zip out folder
+              run: powershell Compress-Archive -Path out\* -DestinationPath dist.zip
+            - uses: actions/upload-artifact@v3
+              with:
+                  name: dist
+                  path: dist.zip
