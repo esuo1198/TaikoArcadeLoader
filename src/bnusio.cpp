@@ -167,7 +167,8 @@ bnusio_GetAnalogIn (const u8 which) {
         if (isP1 && buttonWaitPeriodP1 > 0) {
             buttonQueueP1.push (which);
             return 0;
-        } else if (!isP1 && buttonWaitPeriodP2 > 0) {
+        }
+        if (!isP1 && buttonWaitPeriodP2 > 0) {
             buttonQueueP2.push (which);
             return 0;
         }
@@ -177,9 +178,9 @@ bnusio_GetAnalogIn (const u8 which) {
         const u16 hitValue = !valueStates[which] ? 50 : 51;
         valueStates[which] = !valueStates[which];
         return (hitValue << 15) / 100 + 1;
-    } else {
-        return 0;
     }
+
+    return 0;
 }
 
 u16 __fastcall bnusio_GetCoin (i32 a1) { return coin_count; }
@@ -257,7 +258,7 @@ FUNCTION_PTR (u64, bnusio_DecService_Original, PROC_ADDRESS ("bnusio_original.dl
 FUNCTION_PTR (i64, bnusio_ResetCoin_Original, PROC_ADDRESS ("bnusio_original.dll", "bnusio_ResetCoin"));
 
 HOOK (u64, bngrw_Init, PROC_ADDRESS ("bngrw.dll", "BngRwInit")) { return 0; }
-HOOK (void, bngrw_Fin, PROC_ADDRESS ("bngrw.dll", "BngRwFin")) { return; }
+HOOK (void, bngrw_Fin, PROC_ADDRESS ("bngrw.dll", "BngRwFin")) {}
 HOOK (u64, bngrw_IsCmdExec, PROC_ADDRESS ("bngrw.dll", "BngRwIsCmdExec")) { return 0xFFFFFFFF; }
 HOOK (i32, bngrw_ReqCancel, PROC_ADDRESS ("bngrw.dll", "BngRwReqCancel")) { return 1; }
 HOOK (i32, bngrw_ReqSendUrl, PROC_ADDRESS ("bngrw.dll", "BngRwReqSendUrlTo")) { return 1; }
@@ -275,26 +276,26 @@ HOOK (i32, bngrw_ReqSendMail, PROC_ADDRESS ("bngrw.dll", "BngRwReqSendMailTo")) 
 HOOK (i32, bngrw_ReqLatchID, PROC_ADDRESS ("bngrw.dll", "BngRwReqLatchID")) { return 1; }
 HOOK (u64, bngrw_ReqAiccAuth, PROC_ADDRESS ("bngrw.dll", "BngRwReqAiccAuth")) { return 1; }
 HOOK (u64, bngrw_DevReset, PROC_ADDRESS ("bngrw.dll", "BngRwDevReset")) { return 1; }
-HOOK (u64, bngrw_Attach, PROC_ADDRESS ("bngrw.dll", "BngRwAttach"), i32 a1, char *a2, i32 a3, i32 a4, callbackAttach callback, i32 *_attachData) {
+HOOK (u64, bngrw_Attach, PROC_ADDRESS ("bngrw.dll", "BngRwAttach"), i32 a1, char *a2, i32 a3, i32 a4, callbackAttach callback, i32 *attachDataH) {
     LogMessage (LogLevel::DEBUG, "BngRwAttach");
     // This is way too fucking jank
     attachCallback = callback;
-    attachData     = _attachData;
+    attachData     = attachDataH;
     return 1;
 }
-HOOK (u64, bngrw_ReqWaitTouch, PROC_ADDRESS ("bngrw.dll", "BngRwReqWaitTouch"), u32 a1, i32 a2, u32 a3, callbackTouch _callback, u64 _touchData) {
+HOOK (u64, bngrw_ReqWaitTouch, PROC_ADDRESS ("bngrw.dll", "BngRwReqWaitTouch"), u32 a1, i32 a2, u32 a3, callbackTouch callbackH, u64 touchDataH) {
     LogMessage (LogLevel::DEBUG, "BngRwReqWaitTouch");
-    touchCallback = _callback;
+    touchCallback = callbackH;
     if (emulateCardReader) {
         waitingForTouch = true;
-        touchData       = _touchData;
+        touchData       = touchDataH;
         for (const auto plugin : plugins)
             if (const FARPROC touchEvent = GetProcAddress (plugin, "WaitTouch"))
-                reinterpret_cast<waitTouchEvent *> (touchEvent) (_callback, _touchData);
+                reinterpret_cast<waitTouchEvent *> (touchEvent) (callbackH, touchDataH);
         return 1;
     }
     // This is called when we use an original card reader and acceptInvalidCards is set to true
-    return originalbngrw_ReqWaitTouch (a1, a2, a3, InspectWaitTouch, _touchData);
+    return originalbngrw_ReqWaitTouch (a1, a2, a3, InspectWaitTouch, touchDataH);
 }
 
 void
@@ -306,7 +307,7 @@ Init () {
     if (config_ptr) {
         const toml_table_t *config = config_ptr.get ();
         if (const auto controller = openConfigSection (config, "controller")) {
-            drumWaitPeriod = (u16)readConfigInt (controller, "wait_period", drumWaitPeriod);
+            drumWaitPeriod = static_cast<u16> (readConfigInt (controller, "wait_period", drumWaitPeriod));
             analogInput    = readConfigBool (controller, "analog_input", analogInput);
             if (analogInput) LogMessage (LogLevel::WARN, "Using analog input mode. All the keyboard drum inputs have been disabled.");
         }
@@ -340,7 +341,7 @@ Init () {
         SetConfigValue (keyConfig, "P2_RIGHT_BLUE", &P2_RIGHT_BLUE);
     }
 
-    if (!emulateUsio && !std::filesystem::exists (std::filesystem::current_path () / "bnusio_original.dll")) {
+    if (!emulateUsio && !exists (std::filesystem::current_path () / "bnusio_original.dll")) {
         emulateUsio = true;
         LogMessage (LogLevel::ERROR, "bnusio_original.dll not found! usio emulation enabled");
     }

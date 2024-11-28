@@ -62,7 +62,7 @@ static HRESULT WINAPI D3D11CreateDeviceAndSwapChainWrap (IDXGIAdapter *pAdapter,
 
 // Functions
 template <typename T>
-inline T
+T
 HookVtableFunction (T *functionPtr, T target) {
     if (*functionPtr == target) return nullptr;
 
@@ -79,7 +79,7 @@ CreateSwapChainWrap (IDXGIFactory *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC
     if (*ppSwapChain) {
         if (FpsLimiterEnable) {
             const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
-            g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
+            g_oldPresentWrap = old2 ? old2 : g_oldPresentWrap;
         }
     }
 
@@ -94,7 +94,7 @@ CreateSwapChainForHwndWrap (IDXGIFactory2 *This, IUnknown *pDevice, const HWND h
     if (*ppSwapChain) {
         if (FpsLimiterEnable) {
             const auto old2   = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, Present1Wrap);
-            g_oldPresent1Wrap = (old2) ? old2 : g_oldPresent1Wrap;
+            g_oldPresent1Wrap = old2 ? old2 : g_oldPresent1Wrap;
         }
     }
 
@@ -103,7 +103,7 @@ CreateSwapChainForHwndWrap (IDXGIFactory2 *This, IUnknown *pDevice, const HWND h
 
 static HRESULT STDMETHODCALLTYPE
 PresentWrap (IDXGISwapChain *pSwapChain, const UINT SyncInterval, const UINT Flags) {
-    if (FpsLimiterEnable) patches::FpsLimiter::Update ();
+    if (FpsLimiterEnable) FpsLimiter::Update ();
 
     bnusio::Update ();
 
@@ -112,7 +112,7 @@ PresentWrap (IDXGISwapChain *pSwapChain, const UINT SyncInterval, const UINT Fla
 
 static HRESULT STDMETHODCALLTYPE
 Present1Wrap (IDXGISwapChain1 *pSwapChain, const UINT SyncInterval, const UINT Flags) {
-    if (FpsLimiterEnable) patches::FpsLimiter::Update ();
+    if (FpsLimiterEnable) FpsLimiter::Update ();
 
     bnusio::Update ();
 
@@ -126,7 +126,7 @@ CreateSwapChain2Wrap (IDXGIFactory2 *This, IUnknown *pDevice, DXGI_SWAP_CHAIN_DE
     if (*ppSwapChain) {
         if (FpsLimiterEnable) {
             const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
-            g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
+            g_oldPresentWrap = old2 ? old2 : g_oldPresentWrap;
         }
     }
 
@@ -141,7 +141,7 @@ CreateDXGIFactory2Wrap (const UINT Flags, REFIID riid, void **ppFactory) {
         const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
 
         const auto old        = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChain2Wrap);
-        g_oldCreateSwapChain2 = (old) ? old : g_oldCreateSwapChain2;
+        g_oldCreateSwapChain2 = old ? old : g_oldCreateSwapChain2;
     }
 
     return hr;
@@ -162,18 +162,19 @@ CreateDXGIFactoryWrap (REFIID riid, _COM_Outptr_ void **ppFactory) {
         else if (IsEqualIID (riid, IID_IDXGIFactory6)) factoryType = 6;
         else if (IsEqualIID (riid, IID_IDXGIFactory7)) factoryType = 7;
 
+        // ReSharper disable once CppDFAConstantConditions
         if (factoryType >= 0) {
             const IDXGIFactory *factory = static_cast<IDXGIFactory *> (*ppFactory);
 
             const auto old       = HookVtableFunction (&factory->lpVtbl->CreateSwapChain, CreateSwapChainWrap);
-            g_oldCreateSwapChain = (old) ? old : g_oldCreateSwapChain;
+            g_oldCreateSwapChain = old ? old : g_oldCreateSwapChain;
         }
 
         if (factoryType >= 2) {
             const IDXGIFactory2 *factory = static_cast<IDXGIFactory2 *> (*ppFactory);
 
             const auto old              = HookVtableFunction (&factory->lpVtbl->CreateSwapChainForHwnd, CreateSwapChainForHwndWrap);
-            g_oldCreateSwapChainForHwnd = (old) ? old : g_oldCreateSwapChainForHwnd;
+            g_oldCreateSwapChainForHwnd = old ? old : g_oldCreateSwapChainForHwnd;
         }
     }
 
@@ -191,7 +192,7 @@ D3D11CreateDeviceAndSwapChainWrap (IDXGIAdapter *pAdapter, const D3D_DRIVER_TYPE
     if (ppSwapChain) {
         if (FpsLimiterEnable) {
             const auto old2  = HookVtableFunction (&(*ppSwapChain)->lpVtbl->Present, PresentWrap);
-            g_oldPresentWrap = (old2) ? old2 : g_oldPresentWrap;
+            g_oldPresentWrap = old2 ? old2 : g_oldPresentWrap;
         }
     }
 
@@ -206,18 +207,20 @@ Init () {
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
-        const auto graphics = openConfigSection (config_ptr.get (), "graphics");
-        if (graphics) fpsLimit = (i32)readConfigInt (graphics, "fpslimit", fpsLimit);
+        if (const auto graphics = openConfigSection (config_ptr.get (), "graphics"))
+            fpsLimit = static_cast<i32> (readConfigInt (graphics, "fpslimit", fpsLimit));
     }
 
     FpsLimiterEnable = fpsLimit > 0;
-    patches::FpsLimiter::Init (static_cast<float> (fpsLimit));
+    FpsLimiter::Init (static_cast<float> (fpsLimit));
 
     MH_Initialize ();
-    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory", (LPVOID)CreateDXGIFactoryWrap, (void **)&g_origCreateDXGIFactory);
-    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory2", (LPVOID)CreateDXGIFactory2Wrap, (void **)&g_origCreateDXGIFactory2);
-    MH_CreateHookApi (L"d3d11.dll", "D3D11CreateDeviceAndSwapChain", (LPVOID)D3D11CreateDeviceAndSwapChainWrap,
-                      (void **)&g_origD3D11CreateDeviceAndSwapChain);
+    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory", reinterpret_cast<LPVOID> (CreateDXGIFactoryWrap),
+                      reinterpret_cast<void **> (&g_origCreateDXGIFactory));
+    MH_CreateHookApi (L"dxgi.dll", "CreateDXGIFactory2", reinterpret_cast<LPVOID> (CreateDXGIFactory2Wrap),
+                      reinterpret_cast<void **> (&g_origCreateDXGIFactory2));
+    MH_CreateHookApi (L"d3d11.dll", "D3D11CreateDeviceAndSwapChain", reinterpret_cast<LPVOID> (D3D11CreateDeviceAndSwapChainWrap),
+                      reinterpret_cast<void **> (&g_origD3D11CreateDeviceAndSwapChain));
     MH_EnableHook (nullptr);
 }
 

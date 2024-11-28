@@ -1,8 +1,8 @@
 #include <winsock2.h>
 #include "helpers.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
 #include <ws2tcpip.h>
 
 /*
@@ -257,6 +257,7 @@ enum daemon_mode {
     DAEMON_MODE_STANDALONE,
 };
 
+// ReSharper disable once CppClassCanBeFinal
 class CAuth : public IUnknown {
 public:
     STDMETHODIMP
@@ -298,12 +299,12 @@ public:
     virtual i32 IAuth_GetUpdaterState (amcus_state_t *arr) {
         memset (arr, 0, sizeof (*arr));
         // Convert gameVerNum from string to double
-        const double ver_d = std::stod (gameVerNum.c_str ());
+        const double ver_d = std::stod (gameVerNum);
 
         const int ver_top = static_cast<int> (ver_d);
         int ver_btm       = static_cast<int> (ver_d * 100);
 
-        if (ver_top != 0) ver_btm %= (ver_top * 100);
+        if (ver_top != 0) ver_btm %= ver_top * 100;
 
         arr->allnet_state      = DAEMON_IDLE;
         arr->allnet_auth_state = 2;
@@ -487,7 +488,7 @@ public:
 
     virtual void Unk33 () {}
 
-    CAuth () {}
+    CAuth () = default;
 
     virtual ~CAuth () {}
 
@@ -531,9 +532,9 @@ CoCreateInstanceHook (const IID *const rclsid, const LPUNKNOWN pUnkOuter, const 
     HRESULT result;
 
     LPOLESTR clsidStr       = nullptr;
-    LPOLESTR iidStr         = nullptr;
+    // const LPOLESTR iidStr         = nullptr;
     [[maybe_unused]] auto _ = StringFromIID (*rclsid, &clsidStr);
-    _                       = StringFromIID (*riid, &iidStr);
+    // _                       = StringFromIID (*riid, &iidStr);
 
     if (IsEqualGUID (*rclsid, IID_CAuthFactory) && IsEqualGUID (*riid, IID_CAuth)) {
         const auto cauth = new CAuth ();
@@ -543,7 +544,7 @@ CoCreateInstanceHook (const IID *const rclsid, const LPUNKNOWN pUnkOuter, const 
     }
 
     CoTaskMemFree (clsidStr);
-    CoTaskMemFree (iidStr);
+    // CoTaskMemFree (iidStr);
     return result;
 }
 

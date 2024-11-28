@@ -115,8 +115,9 @@ Enhanced original option:
 
 To compile TaikoArcadeLoader, you'll need to install [MSVC](https://aka.ms/vs/17/release/vs_BuildTools.exe).
 
-Loading this project in cliON or vscode with the cmake tools addon should then allow you to build the project.  
-If you want to build yourself, here are some instructions on how to do this from a cmd shell.
+Loading this project in CLion or VSCode with the cmake tools addon should then allow you to build the project.  
+Do note that the .sln files created after you run the configure command CAN be opened using Visual Studio or Rider.  
+If you want to build yourself, here are some instructions on how to do this from a cmd shell.  
 
 Clone this repository, open *cmd* and run the following commands:
 
@@ -131,4 +132,4 @@ cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --target bnusio
 ```
 
-The compiled build of TaikoArcadeLoader will be written in the `dist` folder.
+The compiled dll of TaikoArcadeLoader will be written in the `dist` folder.

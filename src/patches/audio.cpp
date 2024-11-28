@@ -15,15 +15,15 @@ typedef struct nusc_init_config {
     bool wasapi_disable_com;
     bool wasapi_exclusive;
     u32 wasapi_exclusive_buffer_size;
-    void *wasapi_audioses;
+    void *wasapi_audioSes;
 } nusc_init_config_t;
 
 bool wasapiShared      = true;
 bool asio              = false;
-std::string asioDriver = "";
+std::string asioDriver;
 
 HOOK_DYNAMIC (i64, NUSCDeviceInit, void *a1, nusc_init_config_t *a2, nusc_init_config_t *a3, void *a4) {
-    LogMessage (LogLevel::INFO, (std::string ("Device mode is ") + (asio ? "ASIO" : (wasapiShared ? "wasapi shared" : "wasapi exclusive"))).c_str ());
+    LogMessage (LogLevel::INFO, std::string ("Device mode is ") + (asio ? "ASIO" : wasapiShared ? "wasapi shared" : "wasapi exclusive"));
     if (asio) LogMessage (LogLevel::INFO, (std::string ("ASIO driver is ") + asioDriver).c_str ());
     a2->device_mode      = asio;
     a2->asio_driver_name = asio ? asioDriver.c_str () : "";
@@ -47,8 +47,7 @@ Init () {
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
-        const auto audio = openConfigSection (config_ptr.get (), "audio");
-        if (audio) {
+        if (const auto audio = openConfigSection (config_ptr.get (), "audio")) {
             wasapiShared = readConfigBool (audio, "wasapi_shared", wasapiShared);
             asio         = readConfigBool (audio, "asio", asio);
             asioDriver   = readConfigString (audio, "asio_driver", asioDriver);

@@ -14,7 +14,7 @@ namespace patches::LayeredFs {
 class RegisteredHandler {
 public:
     std::function<std::string (std::string, std::string)> handlerMethod;
-    RegisteredHandler (const std::function<std::string (std::string, std::string)> &handlerMethod) { this->handlerMethod = handlerMethod; }
+    explicit RegisteredHandler (const std::function<std::string (std::string, std::string)> &handlerMethod) { this->handlerMethod = handlerMethod; }
 };
 
 std::vector<RegisteredHandler *> beforeHandlers = {};
@@ -22,13 +22,12 @@ std::vector<RegisteredHandler *> afterHandlers  = {};
 
 u32
 CRC32C (u32 crc, const unsigned char *buf, size_t len) {
-    int k;
 
     crc = ~crc;
     while (len--) {
         crc ^= *buf++;
-        for (k = 0; k < 8; k++)
-            crc = (crc >> 1) ^ (CRCPOLY & (0 - (crc & 1)));
+        for (int k = 0; k < 8; k++)
+            crc = crc >> 1 ^ CRCPOLY & 0 - (crc & 1);
     }
     return ~crc;
 }
@@ -39,10 +38,10 @@ CheckCRC (const std::string &path, const u32 crc) {
         std::filesystem::path crc_path = path;
         crc_path.replace_extension (".crc");
         std::ifstream crc_file (crc_path, std::ios::binary);
-        const std::string crc_content ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
+        const std::string crc_content ((std::istreambuf_iterator (crc_file)), std::istreambuf_iterator<char> ());
         return std::stoul (crc_content) != crc;
     }
-    return 1;
+    return true;
 }
 
 void
@@ -62,8 +61,7 @@ CreateDirectories (const std::string &path) {
 
 void
 WriteFile (const std::string &filename, const std::vector<u8> &data, u32 original_crc) {
-    std::string::size_type pos = filename.find_last_of ("\\");
-    if (pos != std::string::npos) {
+    if (std::string::size_type pos = filename.find_last_of ('\\'); pos != std::string::npos) {
         std::string directory = filename.substr (0, pos);
         CreateDirectories (directory);
     }
@@ -84,15 +82,15 @@ GZip_Compress (const std::vector<unsigned char> &data) {
     deflate_stream.zalloc   = nullptr;
     deflate_stream.zfree    = nullptr;
     deflate_stream.opaque   = nullptr;
-    deflate_stream.avail_in = (uInt)data.size ();
+    deflate_stream.avail_in = static_cast<uInt> (data.size ());
     deflate_stream.next_in  = const_cast<Bytef *> (data.data ());
 
     deflateInit2 (&deflate_stream, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY);
 
     std::vector<unsigned char> compressed_data;
-    compressed_data.resize (deflateBound (&deflate_stream, (uLong)data.size ()));
+    compressed_data.resize (deflateBound (&deflate_stream, static_cast<uLong> (data.size ())));
 
-    deflate_stream.avail_out = (uInt)compressed_data.size ();
+    deflate_stream.avail_out = static_cast<uInt> (compressed_data.size ());
     deflate_stream.next_out  = compressed_data.data ();
 
     deflate (&deflate_stream, Z_FINISH);
@@ -105,7 +103,7 @@ GZip_Compress (const std::vector<unsigned char> &data) {
 // Function to pad data according to PKCS7
 std::vector<u8>
 Pad_Data (const std::vector<u8> &data, const size_t block_size) {
-    const size_t padding        = block_size - (data.size () % block_size);
+    const size_t padding        = block_size - data.size () % block_size;
     std::vector<u8> padded_data = data;
     padded_data.insert (padded_data.end (), padding, static_cast<u8> (padding));
     return padded_data;
@@ -134,7 +132,7 @@ EncryptFile (const std::string &input_file, const std::string &hex_key) {
     // Read the entire file into memory
     std::ifstream file (input_file, std::ios::binary);
 
-    const std::vector<u8> data ((std::istreambuf_iterator<char> (file)), std::istreambuf_iterator<char> ());
+    const std::vector<u8> data ((std::istreambuf_iterator (file)), std::istreambuf_iterator<char> ());
 
     // Compress the data
     const std::vector<u8> compressed_data = GZip_Compress (data);
@@ -144,11 +142,11 @@ EncryptFile (const std::string &input_file, const std::string &hex_key) {
 
     // Encrypt the data
     symmetric_CBC cbc;
-    if (cbc_start (find_cipher ("aes"), iv.data (), key.data (), (int)key.size (), 0, &cbc) != CRYPT_OK)
+    if (cbc_start (find_cipher ("aes"), iv.data (), key.data (), static_cast<int> (key.size ()), 0, &cbc) != CRYPT_OK)
         throw std::runtime_error ("Error initializing CBC");
 
     std::vector<u8> encrypted_data (padded_data.size ());
-    if (cbc_encrypt (padded_data.data (), encrypted_data.data (), (unsigned long)padded_data.size (), &cbc) != CRYPT_OK)
+    if (cbc_encrypt (padded_data.data (), encrypted_data.data (), static_cast<unsigned long> (padded_data.size ()), &cbc) != CRYPT_OK)
         throw std::runtime_error ("Error during encryption");
 
     cbc_done (&cbc);
@@ -177,9 +175,9 @@ IsFumenEncrypted (const std::string &filename) {
 }
 
 std::string
-LayeredFsHandler (const std::string originalFileName, const std::string currentFileName) {
+LayeredFsHandler (const std::string &originalFileName, const std::string &currentFileName) {
     std::filesystem::path path (originalFileName.c_str ());
-    if (!path.is_absolute ()) path = std::filesystem::absolute (path);
+    if (!path.is_absolute ()) path = absolute (path);
     auto originalDataFolder       = std::filesystem::current_path ().parent_path ().parent_path () / "Data" / "x64";
     auto originalLayeredFsFolder  = std::filesystem::current_path ().parent_path ().parent_path () / "Data_mods" / "x64";
     auto encryptedLayeredFsFolder = std::filesystem::current_path ().parent_path ().parent_path () / "Data_mods" / "x64_enc";
@@ -191,41 +189,40 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
         encPath.replace (0, originalDataFolder.string ().length (), encryptedLayeredFsFolder.string ());
 
         // The following code handles file redirection and if need be, file encryption.
-        // It's a bit of a mess but it works well ! -Kit
+        // It's a bit of a mess, but it works well ! -Kit
 
         if (std::filesystem::exists (newPath)) { // If a file exists in the datamod folder
             if (IsFumenEncrypted (newPath)) {    // And if it's an encrypted fumen or a different type of file, use it.
-                LogMessage (LogLevel::DEBUG, ("Redirecting " + std::filesystem::relative (path).string ()).c_str ());
+                LogMessage (LogLevel::DEBUG, ("Redirecting " + relative (path).string ()).c_str ());
                 return newPath;
-            } else {                                      // Otherwise if it's an unencrypted fumen.
-                if (!std::filesystem::exists (encPath)) { // We check if we don't already have a cached file.
-                    if (fumenKey.length () == 64) {
-                        LogMessage (LogLevel::DEBUG,
-                                    ("Encrypting " + std::filesystem::relative (newPath).string ()).c_str ()); // If we don't we encrypt the file
-                        std::ifstream crc_file (newPath, std::ios::binary);
-                        std::vector<u8> crc_vector ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
-                        u32 crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
-                        WriteFile (encPath, EncryptFile (newPath, fumenKey), crc); // And we save it
-                    } else {
-                        LogMessage (
-                            LogLevel::ERROR,
-                            ("Missing or invalid fumen key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str ());
-                        encPath = path.string ();
-                    }
-                } else LogMessage (LogLevel::DEBUG, ("Using cached file for: " + std::filesystem::relative (newPath).string ()).c_str ());
-                return encPath;
-            }
+            } // Otherwise if it's an unencrypted fumen.
+            if (!std::filesystem::exists (encPath)) { // We check if we don't already have a cached file.
+                if (fumenKey.length () == 64) {
+                    LogMessage (LogLevel::DEBUG,
+                                ("Encrypting " + std::filesystem::relative (newPath).string ()).c_str ()); // If we don't we encrypt the file
+                    std::ifstream crc_file (newPath, std::ios::binary);
+                    std::vector<u8> crc_vector ((std::istreambuf_iterator (crc_file)), std::istreambuf_iterator<char> ());
+                    u32 crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
+                    WriteFile (encPath, EncryptFile (newPath, fumenKey), crc); // And we save it
+                } else {
+                    LogMessage (
+                        LogLevel::ERROR,
+                        ("Missing or invalid fumen key: " + std::filesystem::relative (newPath).string () + " couldn't be encrypted.").c_str ());
+                    encPath = path.string ();
+                }
+            } else LogMessage (LogLevel::DEBUG, ("Using cached file for: " + std::filesystem::relative (newPath).string ()).c_str ());
+            return encPath;
         }
 
         // We check separately for unencrypted json files.
         std::filesystem::path json_path = newPath;
         json_path.replace_extension (".json");
-        if (std::filesystem::exists (json_path)) { // If a json file exists in the folder
+        if (exists (json_path)) { // If a json file exists in the folder
             bool crcBool = false;
 
             if (std::filesystem::exists (encPath)) {
                 std::ifstream crc_file (json_path, std::ios::binary);
-                std::vector<u8> crc_vector ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
+                std::vector<u8> crc_vector ((std::istreambuf_iterator (crc_file)), std::istreambuf_iterator<char> ());
                 u32 crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
                 crcBool = CheckCRC (encPath, crc);
             }
@@ -233,9 +230,9 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
             if (!std::filesystem::exists (encPath) || crcBool) { // And if it hasn't been encrypted before
                 if (datatableKey.length () == 64) {
                     // Encrypt the file
-                    LogMessage (LogLevel::DEBUG, ("Encrypting " + std::filesystem::relative (json_path).string ()).c_str ());
+                    LogMessage (LogLevel::DEBUG, ("Encrypting " + relative (json_path).string ()).c_str ());
                     std::ifstream crc_file (json_path.string (), std::ios::binary);
-                    std::vector<u8> crc_vector ((std::istreambuf_iterator<char> (crc_file)), std::istreambuf_iterator<char> ());
+                    std::vector<u8> crc_vector ((std::istreambuf_iterator (crc_file)), std::istreambuf_iterator<char> ());
                     u32 crc = CRC32C (0, crc_vector.data (), crc_vector.size ());
                     WriteFile (encPath, EncryptFile (json_path.string (), datatableKey), crc); // And save it
                 } else {
@@ -246,7 +243,7 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
                 }
             } else
                 // Otherwise use the already encrypted file.
-                LogMessage (LogLevel::DEBUG, ("Using cached file for: " + std::filesystem::relative (json_path).string ()).c_str ());
+                LogMessage (LogLevel::DEBUG, ("Using cached file for: " + relative (json_path).string ()).c_str ());
             return encPath;
         }
     }
@@ -256,8 +253,8 @@ LayeredFsHandler (const std::string originalFileName, const std::string currentF
 
 HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
       LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
-    const std::string originalFileName = std::string (lpFileName);
-    std::string currentFileName        = originalFileName;
+    const auto originalFileName = std::string (lpFileName);
+    std::string currentFileName = originalFileName;
     LogMessage (LogLevel::HOOKS, ("CreateFileA: " + originalFileName).c_str ());
 
     if (!beforeHandlers.empty ()) {
@@ -283,33 +280,6 @@ HOOK (HANDLE, CreateFileAHook, PROC_ADDRESS ("kernel32.dll", "CreateFileA"), LPC
                                     dwFlagsAndAttributes, hTemplateFile);
 }
 
-// HOOK (HANDLE, CreateFileWHook, PROC_ADDRESS ("kernel32.dll", "CreateFileW"), LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
-//       LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
-//     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-//     std::string strFileName = converter.to_bytes (lpFileName);
-
-//     std::filesystem::path path (strFileName);
-//     if (!path.is_absolute ()) path = std::filesystem::absolute (path);
-
-//     auto originalDataFolder      = std::filesystem::current_path ().parent_path ().parent_path () / "Data" / "x64";
-//     auto originalLayeredFsFolder = std::filesystem::current_path ().parent_path ().parent_path () / "Data_mods" / "x64";
-
-//     if (path.string ().find (originalDataFolder.string ()) != std::string::npos) {
-//         auto newPath = path.string ();
-//         newPath.replace (0, originalDataFolder.string ().length (), originalLayeredFsFolder.string ());
-
-//         if (std::filesystem::exists (newPath)) {
-//             std::wstring wNewPath = converter.from_bytes (newPath);
-//             std::wcout << L"Redirecting " << lpFileName << L" to " << wNewPath << std::endl;
-//             return originalCreateFileWHook (wNewPath.c_str (), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition,
-//                                             dwFlagsAndAttributes, hTemplateFile);
-//         }
-//     }
-
-//     return originalCreateFileWHook (lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes,
-//                                     hTemplateFile);
-// }
-
 void
 Init () {
     LogMessage (LogLevel::INFO, "Init LayeredFs patches");
@@ -317,21 +287,20 @@ Init () {
     const auto configPath = std::filesystem::current_path () / "config.toml";
     const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
     if (config_ptr) {
-        const auto layeredFs = openConfigSection (config_ptr.get (), "layeredfs");
-        if (layeredFs) useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
+        if (const auto layeredFs = openConfigSection (config_ptr.get (), "layeredfs"))
+            useLayeredFs = readConfigBool (layeredFs, "enabled", useLayeredFs);
     }
     register_cipher (&aes_desc);
     INSTALL_HOOK (CreateFileAHook);
-    // INSTALL_HOOK (CreateFileWHook);
 }
 
 void
-RegisterBefore (const std::function<std::string (const std::string, const std::string)> &fileHandler) {
+RegisterBefore (const std::function<std::string (std::string, std::string)> &fileHandler) {
     beforeHandlers.push_back (new RegisteredHandler (fileHandler));
 }
 
 void
-RegisterAfter (const std::function<std::string (const std::string, const std::string)> &fileHandler) {
+RegisterAfter (const std::function<std::string (std::string, std::string)> &fileHandler) {
     afterHandlers.push_back (new RegisteredHandler (fileHandler));
 }
 

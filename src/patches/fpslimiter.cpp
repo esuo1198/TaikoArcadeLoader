@@ -40,8 +40,7 @@ Update () {
                 QueryPerformanceFrequency (&PerformanceCount3);
                 i      = 0;
                 t      = 1000.0 / static_cast<double> (PerformanceCount3.QuadPart);
-                auto v = t * 2147483648.0;
-                if (60000.0 > v) {
+                if (auto v = t * 2147483648.0; 60000.0 > v) {
                     while (true) {
                         ++i;
                         v *= 2.0;
@@ -54,7 +53,7 @@ Update () {
             break;
         }
 
-        if ((static_cast<double> ((PerformanceCount2.QuadPart >> i) - PerformanceCount1.QuadPart) * t) >= targetFrameTime) break;
+        if (static_cast<double> ((PerformanceCount2.QuadPart >> i) - PerformanceCount1.QuadPart) * t >= targetFrameTime) break;
 
         SleepEx (0, 1);
     }

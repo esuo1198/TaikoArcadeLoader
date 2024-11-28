@@ -16,8 +16,8 @@ std::string chassisId   = "284111080000";
 std::string shopId      = "TAIKO ARCADE LOADER";
 std::string gameVerNum  = "00.00";
 std::string countryCode = "JPN";
-char fullAddress[256]   = {'\0'};
-char placeId[16]        = {'\0'};
+char fullAddress[256]   = {};
+char placeId[16]        = {};
 char accessCode1[21]    = "00000000000000000001";
 char accessCode2[21]    = "00000000000000000002";
 char chipId1[33]        = "00000000000000000000000000000001";
@@ -55,8 +55,8 @@ HOOK (bool, SetWindowPosition, PROC_ADDRESS ("user32.dll", "SetWindowPos"), HWND
         RECT rw, rc;
         GetWindowRect (hWnd, &rw);
         GetClientRect (hWnd, &rc);
-        cx = (rw.right - rw.left) - (rc.right - rc.left) + cx;
-        cy = (rw.bottom - rw.top) - (rc.bottom - rc.top) + cy;
+        cx = rw.right - rw.left - (rc.right - rc.left) + cx;
+        cy = rw.bottom - rw.top - (rc.bottom - rc.top) + cy;
     }
     return originalSetWindowPosition (hWnd, hWndInsertAfter, X, Y, cx, cy, uFlags);
 }
@@ -89,7 +89,7 @@ GetGameVersion () {
     GetModuleFileNameW (nullptr, w_path, MAX_PATH);
     const std::filesystem::path path (w_path);
 
-    if (!std::filesystem::exists (path) || !path.has_filename ()) {
+    if (!exists (path) || !path.has_filename ()) {
         MessageBoxA (nullptr, "Failed to find executable", nullptr, MB_OK);
         ExitProcess (0);
     }
@@ -125,23 +125,23 @@ void
 CreateCard () {
     LogMessage (LogLevel::INFO, "Creating card.ini");
     constexpr char hexCharacterTable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    char buf[64]                       = {0};
-    srand ((unsigned int)time (nullptr));
+    char buf[64]                       = {};
+    srand (static_cast<unsigned int> (time (nullptr)));
 
-    std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
+    std::generate_n (buf, 20, [&] { return hexCharacterTable[rand () % 10]; });
     WritePrivateProfileStringA ("card", "accessCode1", buf, ".\\card.ini");
-    std::generate_n (buf, 32, [&] () { return hexCharacterTable[rand () % 16]; });
+    std::generate_n (buf, 32, [&] { return hexCharacterTable[rand () % 16]; });
     WritePrivateProfileStringA ("card", "chipId1", buf, ".\\card.ini");
-    std::generate_n (buf, 20, [&] () { return hexCharacterTable[rand () % 10]; });
+    std::generate_n (buf, 20, [&] { return hexCharacterTable[rand () % 10]; });
     WritePrivateProfileStringA ("card", "accessCode2", buf, ".\\card.ini");
-    std::generate_n (buf, 32, [&] () { return hexCharacterTable[rand () % 16]; });
+    std::generate_n (buf, 32, [&] { return hexCharacterTable[rand () % 16]; });
     WritePrivateProfileStringA ("card", "chipId2", buf, ".\\card.ini");
 }
 
 BOOL
 DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
     if (reason == DLL_PROCESS_ATTACH) {
-        // This is bad, dont do this
+        // This is bad, don't do this
         // I/O in DllMain can easily cause a deadlock
 
         // Init logger for loading config
@@ -162,7 +162,7 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
                 countryCode = readConfigString (amauthConfig, "country_code", countryCode);
 
                 std::strcat (fullAddress, server.c_str ());
-                if (port != "") {
+                if (!port.empty ()) {
                     std::strcat (fullAddress, ":");
                     std::strcat (fullAddress, port.c_str ());
                 }
@@ -210,7 +210,7 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
         }
         LogMessage (LogLevel::INFO, "GameVersion is %s", GameVersionToString (gameVersion));
 
-        if (const auto pluginPath = std::filesystem::current_path () / "plugins"; std::filesystem::exists (pluginPath)) {
+        if (const auto pluginPath = std::filesystem::current_path () / "plugins"; exists (pluginPath)) {
             for (const auto &entry : std::filesystem::directory_iterator (pluginPath)) {
                 if (entry.path ().extension () == ".dll") {
                     auto name      = entry.path ().wstring ();

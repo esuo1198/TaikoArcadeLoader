@@ -105,7 +105,6 @@ fabric.properties
 *.exe
 *.out
 *.app
-*.dll
 
 # Prerequisites
 *.d
@@ -132,7 +131,6 @@ CMakeUserPresets.json
 
 # Leftovers from the old build system
 xpacks/
-compile_commands.json
 package.json
 .cache
 subprojects/packagecache
@@ -146,3 +144,4 @@ subprojects/zlib
 subprojects/pugixml-1.14
 libtomcrypt-1.18.2
 dist.7z
+/.idea

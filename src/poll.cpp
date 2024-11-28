@@ -384,7 +384,7 @@ SetConfigValue (const toml_table_t *table, const char *key, Keybindings *key_bin
 }
 
 bool
-InitializePoll (HWND windowHandle) {
+InitializePoll (const HWND windowHandle) {
     bool hasRumble = true;
     SDL_SetMainReady ();
 
@@ -404,8 +404,9 @@ InitializePoll (HWND windowHandle) {
         }
     }
 
-    const auto configPath = std::filesystem::current_path () / "gamecontrollerdb.txt";
-    if (SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1) LogMessage (LogLevel::ERROR, "Cannot read gamecontrollerdb.txt");
+    if (const auto configPath = std::filesystem::current_path () / "gamecontrollerdb.txt";
+        SDL_GameControllerAddMappingsFromFile (configPath.string ().c_str ()) == -1)
+        LogMessage (LogLevel::ERROR, "Cannot read gamecontrollerdb.txt");
     SDL_GameControllerEventState (SDL_ENABLE);
     SDL_JoystickEventState (SDL_ENABLE);
 
@@ -428,7 +429,7 @@ InitializePoll (HWND windowHandle) {
 }
 
 void
-UpdatePoll (HWND windowHandle) {
+UpdatePoll (const HWND windowHandle) {
     if (windowHandle == nullptr || GetForegroundWindow () != windowHandle) return;
 
     memcpy (lastKeyboardState, currentKeyboardState, 255);
@@ -560,7 +561,7 @@ StringToConfigEnum (const char *value) {
 
 InternalButtonState
 GetInternalButtonState (const Keybindings &bindings) {
-    InternalButtonState buttons = {0};
+    InternalButtonState buttons = {};
 
     for (size_t i = 0; i < ConfigKeyboardButtonsCount; i++) {
         if (bindings.keycodes[i] == 0) continue;
@@ -670,19 +671,19 @@ GetWasMouseScrollDown () {
 bool
 GetMouseScrollIsReleased (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return !GetMouseScrollUp () && GetWasMouseScrollUp ();
-    else return !GetMouseScrollDown () && GetWasMouseScrollDown ();
+    return !GetMouseScrollDown () && GetWasMouseScrollDown ();
 }
 
 bool
 GetMouseScrollIsDown (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return GetMouseScrollUp ();
-    else return GetMouseScrollDown ();
+    return GetMouseScrollDown ();
 }
 
 bool
 GetMouseScrollIsTapped (const Scroll scroll) {
     if (scroll == MOUSE_SCROLL_UP) return GetMouseScrollUp () && !GetWasMouseScrollUp ();
-    else return GetMouseScrollDown () && !GetWasMouseScrollDown ();
+    return GetMouseScrollDown () && !GetWasMouseScrollDown ();
 }
 
 bool

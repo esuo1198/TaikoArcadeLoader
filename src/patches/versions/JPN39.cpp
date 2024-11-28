@@ -1,6 +1,7 @@
 // ReSharper disable CppTooWideScopeInitStatement
 #include "helpers.h"
 #include "../patches.h"
+#include <map>
 
 namespace patches::JPN39 {
 int language = 0;
@@ -254,7 +255,7 @@ check_voice_tail (const std::string &bankName, u8 *pBinfBlock, std::map<std::str
 
 MID_HOOK (GenNus3bankId, ASLR (0x1407B97BD), SafetyHookContext &ctx) {
     LogMessage (LogLevel::HOOKS, "GenNus3bankId was called");
-    std::lock_guard<std::mutex> lock (nus3bankMtx);
+    std::lock_guard lock (nus3bankMtx);
     if (reinterpret_cast<u8 **> (ctx.rcx + 8) != nullptr) {
         u8 *pNus3bankFile = *reinterpret_cast<u8 **> (ctx.rcx + 8);
         if (pNus3bankFile[0] == 'N' && pNus3bankFile[1] == 'U' && pNus3bankFile[2] == 'S' && pNus3bankFile[3] == '3') {
@@ -352,7 +353,7 @@ HOOK (i64, LoadedBankAll, ASLR (0x1404C69F0), i64 a1) {
 float soundRate = 1.0F;
 HOOK (i32, SetMasterVolumeSpeaker, ASLR (0x140160330), i32 a1) {
     LogMessage (LogLevel::HOOKS, "SetMasterVolumeSpeaker was called");
-    soundRate = (float)(a1 <= 100 ? 1.0F : a1 / 100.0);
+    soundRate = static_cast<float> (a1 <= 100 ? 1.0F : a1 / 100.0);
     return originalSetMasterVolumeSpeaker (a1 > 100 ? 100 : a1);
 }
 
@@ -428,8 +429,8 @@ Init () {
 
         if (auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (auto res = openConfigSection (graphics, "res")) {
-                xRes = (i32)readConfigInt (res, "x", xRes);
-                yRes = (i32)readConfigInt (res, "y", yRes);
+                xRes = static_cast<i32> (readConfigInt (res, "x", xRes));
+                yRes = static_cast<i32> (readConfigInt (res, "y", yRes));
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }
@@ -487,11 +488,11 @@ Init () {
             WRITE_MEMORY (ASLR (address) + 2, i32, datatableBufferSize);
 
         auto bufferBase = MODULE_HANDLE - 0x03000000;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer1);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer1);
         bufferBase += datatableBufferSize;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer2);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer2);
         bufferBase += datatableBufferSize;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer3);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer3);
 
         ReplaceLeaBufferAddress (datatableBuffer1Addresses, datatableBuffer1.data ());
         ReplaceLeaBufferAddress (datatableBuffer2Addresses, datatableBuffer2.data ());
@@ -501,23 +502,23 @@ Init () {
     // Freeze Timer
     TestMode::RegisterItem (L"<select-item label=\"FREEZE TIMER\" param-offset-x=\"35\" replace-text=\"0:OFF, 1:ON\" "
                             L"group=\"Setting\" id=\"ModFreezeTimer\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () { INSTALL_MID_HOOK (FreezeTimer); });
+                            [&] { INSTALL_MID_HOOK (FreezeTimer); });
     // Mode Unlock
     TestMode::RegisterItem (L"<select-item label=\"KIMETSU MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, 1:ENABLE, "
                             L"2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo024\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () { INSTALL_HOOK (AvailableMode_Collabo024); });
+                            [&] { INSTALL_HOOK (AvailableMode_Collabo024); });
     TestMode::RegisterItem (L"<select-item label=\"ONE PIECE MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, "
                             L"1:ENABLE, 2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo025\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () { INSTALL_HOOK (AvailableMode_Collabo025); });
+                            [&] { INSTALL_HOOK (AvailableMode_Collabo025); });
     TestMode::RegisterItem (L"<select-item label=\"AI SOSHINA MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, "
                             L"1:ENABLE, 2:CARD ONLY\" group=\"Setting\" id=\"ModModeCollabo026\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () { INSTALL_HOOK (AvailableMode_Collabo026); });
+                            [&] { INSTALL_HOOK (AvailableMode_Collabo026); });
     TestMode::RegisterItem (L"<select-item label=\"AOHARU MODE\" param-offset-x=\"35\" replace-text=\"0:DEFAULT, 1:ENABLE, "
                             L"2:CARD ONLY\" group=\"Setting\" id=\"ModModeAprilFool001\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () { INSTALL_HOOK (AvailableMode_AprilFool001); });
+                            [&] { INSTALL_HOOK (AvailableMode_AprilFool001); });
     TestMode::RegisterItem (L"<select-item label=\"INSTANT RESULT\" param-offset-x=\"35\" replace-text=\"0:OFF, 1:ON\" "
                             L"group=\"Setting\" id=\"ModInstantResult\" max=\"1\" min=\"0\" default=\"0\"/>",
-                            [&] () {
+                            [&] {
                                 INSTALL_HOOK (SceneResultInitialize_Enso);
                                 INSTALL_HOOK (SceneResultInitialize_AI);
                                 INSTALL_HOOK (SceneResultInitialize_Collabo025);
@@ -585,7 +586,7 @@ Init () {
             std::string fileName = currentFileName;
             fileName             = replace (fileName, "\\lumen\\", "\\lumen_cn\\");
             if (std::filesystem::exists (fileName)) return fileName;
-            else return currentFileName;
+            return currentFileName;
         });
     }
 

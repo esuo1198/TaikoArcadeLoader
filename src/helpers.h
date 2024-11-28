@@ -1,20 +1,16 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
 #include <filesystem>
-#include <map>
-#include <mutex>
-#include <iostream>
 #include <fstream>
-#include <string>
+#include <mutex>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <safetyhook.hpp>
-#include <toml.h>
-#include <windows.h>
 // ReSharper disable once CppUnusedIncludeDirective
 #include <MinHook.h>
-
+#include <string>
+#include <toml.h>
+#include <windows.h>
 #include "constants.h"
 #include "logger.h"
 

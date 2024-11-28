@@ -26,8 +26,8 @@ namespace patches::Qr {
 
 enum class State { Ready, CopyWait };
 enum class Mode { Card, Data, Image, Plugin };
-State gState = State::Ready;
-Mode gMode   = Mode::Card;
+auto gState = State::Ready;
+auto gMode  = Mode::Card;
 HMODULE gPlugin;
 std::string accessCode;
 
@@ -66,7 +66,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             memcpy (dest, accessCode.c_str (), accessCode.size () + 1);
             gState = State::Ready;
             return accessCode.size () + 1;
-        } else if (gMode == Mode::Data) {
+        }
+        if (gMode == Mode::Data) {
             std::string serial = "";
             u16 type           = 0;
             std::vector<i64> songNoes;
@@ -75,7 +76,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                 if (auto qr = openConfigSection (config_ptr.get (), "qr")) {
                     if (auto data = openConfigSection (qr, "data")) {
                         serial   = readConfigString (data, "serial", "");
-                        type     = (u16)readConfigInt (data, "type", 0);
+                        type     = static_cast<u16> (readConfigInt (data, "type", 0));
                         songNoes = readConfigIntArray (data, "song_no", songNoes);
                     }
                 }
@@ -93,11 +94,11 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                 folderData.push_back (static_cast<u8> (songNoes.size ()) * 2);
 
                 folderData.push_back (static_cast<u8> (type & 0xFF));
-                folderData.push_back (static_cast<u8> ((type >> 8) & 0xFF));
+                folderData.push_back (static_cast<u8> (type >> 8 & 0xFF));
 
                 for (i64 songNo : songNoes) {
                     folderData.push_back (static_cast<u8> (songNo & 0xFF));
-                    folderData.push_back (static_cast<u8> ((songNo >> 8) & 0xFF));
+                    folderData.push_back (static_cast<u8> (songNo >> 8 & 0xFF));
                 }
 
                 for (auto c : folderData)
@@ -115,7 +116,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             memcpy (dest, byteBuffer.data (), byteBuffer.size ());
             gState = State::Ready;
             return byteBuffer.size ();
-        } else if (gMode == Mode::Image) {
+        }
+        if (gMode == Mode::Image) {
             std::string imagePath = "";
 
             if (config_ptr) {
@@ -124,7 +126,7 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
 
             std::u8string u8PathStr (imagePath.begin (), imagePath.end ());
             std::filesystem::path u8Path (u8PathStr);
-            if (!std::filesystem::is_regular_file (u8Path)) {
+            if (!is_regular_file (u8Path)) {
                 LogMessage (LogLevel::ERROR, ("Failed to open image: " + u8Path.string () + " (file not found)").c_str ());
                 gState = State::Ready;
                 return 0;
@@ -155,7 +157,8 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
             memcpy (dest, byteData.data (), dataSize);
             gState = State::Ready;
             return dataSize;
-        } else if (gMode == Mode::Plugin) {
+        }
+        if (gMode == Mode::Plugin) {
             if (FARPROC getEvent = GetProcAddress (gPlugin, "GetQr")) {
                 std::vector<unsigned char> plugin_data (length);
                 int buf_len = reinterpret_cast<getQrEvent *> (getEvent) (length, plugin_data.data ());
@@ -163,21 +166,20 @@ HOOK_DYNAMIC (i64, CopyData, i64, void *dest, int length) {
                     std::stringstream hexStream;
                     for (int i = 0; i < buf_len; i++)
                         hexStream << std::hex << std::uppercase << std::setfill ('0') << std::setw (2) << static_cast<int> (plugin_data[i]) << " ";
-                    LogMessage (LogLevel::INFO, ("QR dump: " + hexStream.str ()).c_str ());
+                    LogMessage (LogLevel::INFO, "QR dump: " + hexStream.str ());
                     memcpy (dest, plugin_data.data (), buf_len);
                 } else {
                     LogMessage (LogLevel::ERROR, ("QR discard! Length invalid: " + std::to_string (buf_len) + ", valid range: 0~").c_str ());
                 }
                 gState = State::Ready;
                 return buf_len;
-            } else {
-                gState = State::Ready;
-                return 0;
             }
+            gState = State::Ready;
+            return 0;
         }
     } else if (qrPluginRegistered) {
         for (auto plugin : qrPlugins)
-            if (FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr")) ((event *)usingQrEvent) ();
+            if (FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr")) reinterpret_cast<event *> (usingQrEvent) ();
     }
     return 0;
 }
@@ -207,8 +209,7 @@ Update () {
             gMode  = Mode::Image;
         } else if (qrPluginRegistered) {
             for (const auto plugin : qrPlugins) {
-                const FARPROC checkEvent = GetProcAddress (plugin, "CheckQr");
-                if (checkEvent && ((checkQrEvent *)checkEvent) ()) {
+                if (const FARPROC checkEvent = GetProcAddress (plugin, "CheckQr"); checkEvent && reinterpret_cast<checkQrEvent *> (checkEvent) ()) {
                     gState  = State::CopyWait;
                     gMode   = Mode::Plugin;
                     gPlugin = plugin;
@@ -229,11 +230,8 @@ Init () {
     }
 
     for (auto plugin : plugins) {
-        const FARPROC initEvent = GetProcAddress (plugin, "InitQr");
-        if (initEvent) ((initQrEvent *)initEvent) (gameVersion);
-
-        const FARPROC usingQrEvent = GetProcAddress (plugin, "UsingQr");
-        if (usingQrEvent) qrPlugins.push_back (plugin);
+        if (const FARPROC initEvent = GetProcAddress (plugin, "InitQr")) reinterpret_cast<initQrEvent *> (initEvent) (gameVersion);
+        if (GetProcAddress (plugin, "UsingQr")) qrPlugins.push_back (plugin);
     }
     if (qrPlugins.size () > 0) {
 
@@ -242,54 +240,54 @@ Init () {
     }
 
     SetConsoleOutputCP (CP_UTF8);
-    const auto amHandle = (u64)GetModuleHandle ("AMFrameWork.dll");
+    const auto amHandle = reinterpret_cast<u64> (GetModuleHandle ("AMFrameWork.dll"));
     switch (gameVersion) {
     case GameVersion::JPN00: {
-        INSTALL_HOOK_DYNAMIC (QrInit, (LPVOID)(amHandle + 0x1B3E0));
-        INSTALL_HOOK_DYNAMIC (QrClose, (LPVOID)(amHandle + 0x1B5B0));
-        INSTALL_HOOK_DYNAMIC (QrRead, (LPVOID)(amHandle + 0x1B600));
-        INSTALL_HOOK_DYNAMIC (CallQrUnknown, (LPVOID)(amHandle + 0xFD40));
-        INSTALL_HOOK_DYNAMIC (Send1, (LPVOID)(amHandle + 0x1BBB0));
-        INSTALL_HOOK_DYNAMIC (Send2, (LPVOID)(amHandle + 0x1BBF0));
-        INSTALL_HOOK_DYNAMIC (Send3, (LPVOID)(amHandle + 0x1BC60));
+        INSTALL_HOOK_DYNAMIC (QrInit, reinterpret_cast<LPVOID> (amHandle + 0x1B3E0));
+        INSTALL_HOOK_DYNAMIC (QrClose, reinterpret_cast<LPVOID> (amHandle + 0x1B5B0));
+        INSTALL_HOOK_DYNAMIC (QrRead, reinterpret_cast<LPVOID> (amHandle + 0x1B600));
+        INSTALL_HOOK_DYNAMIC (CallQrUnknown, reinterpret_cast<LPVOID> (amHandle + 0xFD40));
+        INSTALL_HOOK_DYNAMIC (Send1, reinterpret_cast<LPVOID> (amHandle + 0x1BBB0));
+        INSTALL_HOOK_DYNAMIC (Send2, reinterpret_cast<LPVOID> (amHandle + 0x1BBF0));
+        INSTALL_HOOK_DYNAMIC (Send3, reinterpret_cast<LPVOID> (amHandle + 0x1BC60));
         // JPN00 has no Send4
-        INSTALL_HOOK_DYNAMIC (CopyData, (LPVOID)(amHandle + 0x1BC30));
+        INSTALL_HOOK_DYNAMIC (CopyData, reinterpret_cast<LPVOID> (amHandle + 0x1BC30));
         break;
     }
     case GameVersion::JPN08: {
         INSTALL_HOOK_DYNAMIC (QrInit, reinterpret_cast<LPVOID> (amHandle + 0x1BA00));
         INSTALL_HOOK_DYNAMIC (QrClose, reinterpret_cast<LPVOID> (amHandle + 0x1BBD0));
-        INSTALL_HOOK_DYNAMIC (QrRead, (LPVOID)(amHandle + 0x1BC20));
-        INSTALL_HOOK_DYNAMIC (CallQrUnknown, (LPVOID)(amHandle + 0xFD40));
-        INSTALL_HOOK_DYNAMIC (Send1, (LPVOID)(amHandle + 0x1C220));
-        INSTALL_HOOK_DYNAMIC (Send2, (LPVOID)(amHandle + 0x1C260));
-        INSTALL_HOOK_DYNAMIC (Send3, (LPVOID)(amHandle + 0x1C2D0));
+        INSTALL_HOOK_DYNAMIC (QrRead, reinterpret_cast<LPVOID> (amHandle + 0x1BC20));
+        INSTALL_HOOK_DYNAMIC (CallQrUnknown, reinterpret_cast<LPVOID> (amHandle + 0xFD40));
+        INSTALL_HOOK_DYNAMIC (Send1, reinterpret_cast<LPVOID> (amHandle + 0x1C220));
+        INSTALL_HOOK_DYNAMIC (Send2, reinterpret_cast<LPVOID> (amHandle + 0x1C260));
+        INSTALL_HOOK_DYNAMIC (Send3, reinterpret_cast<LPVOID> (amHandle + 0x1C2D0));
         // JPN08 has no Send4
-        INSTALL_HOOK_DYNAMIC (CopyData, (LPVOID)(amHandle + 0x1C2A0));
+        INSTALL_HOOK_DYNAMIC (CopyData, reinterpret_cast<LPVOID> (amHandle + 0x1C2A0));
         break;
     }
     case GameVersion::JPN39: {
-        INSTALL_HOOK_DYNAMIC (QrInit, (LPVOID)(amHandle + 0x1EDC0));
-        INSTALL_HOOK_DYNAMIC (QrClose, (LPVOID)(amHandle + 0x1EF60));
-        INSTALL_HOOK_DYNAMIC (QrRead, (LPVOID)(amHandle + 0x1EFB0));
-        INSTALL_HOOK_DYNAMIC (CallQrUnknown, (LPVOID)(amHandle + 0x11A70));
-        INSTALL_HOOK_DYNAMIC (Send1, (LPVOID)(amHandle + 0x1F5B0));
-        INSTALL_HOOK_DYNAMIC (Send2, (LPVOID)(amHandle + 0x1F5F0));
-        INSTALL_HOOK_DYNAMIC (Send3, (LPVOID)(amHandle + 0x1F660));
-        INSTALL_HOOK_DYNAMIC (Send4, (LPVOID)(amHandle + 0x1F690));
-        INSTALL_HOOK_DYNAMIC (CopyData, (LPVOID)(amHandle + 0x1F630));
+        INSTALL_HOOK_DYNAMIC (QrInit, reinterpret_cast<LPVOID> (amHandle + 0x1EDC0));
+        INSTALL_HOOK_DYNAMIC (QrClose, reinterpret_cast<LPVOID> (amHandle + 0x1EF60));
+        INSTALL_HOOK_DYNAMIC (QrRead, reinterpret_cast<LPVOID> (amHandle + 0x1EFB0));
+        INSTALL_HOOK_DYNAMIC (CallQrUnknown, reinterpret_cast<LPVOID> (amHandle + 0x11A70));
+        INSTALL_HOOK_DYNAMIC (Send1, reinterpret_cast<LPVOID> (amHandle + 0x1F5B0));
+        INSTALL_HOOK_DYNAMIC (Send2, reinterpret_cast<LPVOID> (amHandle + 0x1F5F0));
+        INSTALL_HOOK_DYNAMIC (Send3, reinterpret_cast<LPVOID> (amHandle + 0x1F660));
+        INSTALL_HOOK_DYNAMIC (Send4, reinterpret_cast<LPVOID> (amHandle + 0x1F690));
+        INSTALL_HOOK_DYNAMIC (CopyData, reinterpret_cast<LPVOID> (amHandle + 0x1F630));
         break;
     }
     case GameVersion::CHN00: {
-        INSTALL_HOOK_DYNAMIC (QrInit, (LPVOID)(amHandle + 0x161B0));
-        INSTALL_HOOK_DYNAMIC (QrClose, (LPVOID)(amHandle + 0x16350));
-        INSTALL_HOOK_DYNAMIC (QrRead, (LPVOID)(amHandle + 0x163A0));
-        INSTALL_HOOK_DYNAMIC (CallQrUnknown, (LPVOID)(amHandle + 0x8F60));
-        INSTALL_HOOK_DYNAMIC (Send1, (LPVOID)(amHandle + 0x16940));
-        INSTALL_HOOK_DYNAMIC (Send2, (LPVOID)(amHandle + 0x16990));
-        INSTALL_HOOK_DYNAMIC (Send3, (LPVOID)(amHandle + 0x16A00));
-        INSTALL_HOOK_DYNAMIC (Send4, (LPVOID)(amHandle + 0x16A30));
-        INSTALL_HOOK_DYNAMIC (CopyData, (LPVOID)(amHandle + 0x169D0));
+        INSTALL_HOOK_DYNAMIC (QrInit, reinterpret_cast<LPVOID> (amHandle + 0x161B0));
+        INSTALL_HOOK_DYNAMIC (QrClose, reinterpret_cast<LPVOID> (amHandle + 0x16350));
+        INSTALL_HOOK_DYNAMIC (QrRead, reinterpret_cast<LPVOID> (amHandle + 0x163A0));
+        INSTALL_HOOK_DYNAMIC (CallQrUnknown, reinterpret_cast<LPVOID> (amHandle + 0x8F60));
+        INSTALL_HOOK_DYNAMIC (Send1, reinterpret_cast<LPVOID> (amHandle + 0x16940));
+        INSTALL_HOOK_DYNAMIC (Send2, reinterpret_cast<LPVOID> (amHandle + 0x16990));
+        INSTALL_HOOK_DYNAMIC (Send3, reinterpret_cast<LPVOID> (amHandle + 0x16A00));
+        INSTALL_HOOK_DYNAMIC (Send4, reinterpret_cast<LPVOID> (amHandle + 0x16A30));
+        INSTALL_HOOK_DYNAMIC (CopyData, reinterpret_cast<LPVOID> (amHandle + 0x169D0));
         break;
     }
     default: {

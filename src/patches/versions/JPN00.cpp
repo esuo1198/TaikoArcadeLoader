@@ -50,8 +50,8 @@ Init () {
 
         if (const auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (const auto res = openConfigSection (graphics, "res")) {
-                xRes = (i32)readConfigInt (res, "x", xRes);
-                yRes = (i32)readConfigInt (res, "y", yRes);
+                xRes = static_cast<i32> (readConfigInt (res, "x", xRes));
+                yRes = static_cast<i32> (readConfigInt (res, "y", yRes));
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }
@@ -81,7 +81,7 @@ Init () {
             WRITE_MEMORY (ASLR (address) + 2, i32, datatableBufferSize);
 
         const auto bufferBase = MODULE_HANDLE - 0x01000000;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer);
 
         ReplaceLeaBufferAddress (datatableBufferAddresses, datatableBuffer.data ());
     }

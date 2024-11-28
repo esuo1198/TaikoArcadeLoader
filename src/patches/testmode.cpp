@@ -38,9 +38,10 @@ u64 appAccessor             = 0;
 RefTestModeMain refTestMode = nullptr;
 
 pugi::xml_document &
-CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menuName, std::vector<std::wstring> items, std::wstring backId) {
+CreateMenu (pugi::xml_document &menuMain, const std::wstring &menuId, const std::wstring &menuName, const std::vector<std::wstring> &items,
+            const std::wstring &backId) {
     LogMessage (LogLevel::DEBUG, L"Create Menu " + menuName);
-    std::wstring menuBasicLine = L"<menu id=\"" + menuId + L"\"></menu>";
+    const std::wstring menuBasicLine = L"<menu id=\"" + menuId + L"\"></menu>";
     if (menuMain.load_string (menuBasicLine.c_str ())) {
         pugi::xml_node menu       = menuMain.first_child ();
         pugi::xml_node menuHeader = menu.append_child (L"layout");
@@ -50,7 +51,7 @@ CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menu
         menuHeader.append_attribute (L"type") = L"Header";
         menuHeader.append_child (L"break-item");
         pugi::xml_node menuTitle              = menuHeader.append_child (L"text-item");
-        std::wstring menuNameFull             = L"     " + menuName;
+        const std::wstring menuNameFull             = L"     " + menuName;
         menuTitle.append_attribute (L"label") = menuNameFull.c_str ();
         menuHeader.append_child (L"break-item");
         menuHeader.append_child (L"break-item");
@@ -61,7 +62,7 @@ CreateMenu (pugi::xml_document &menuMain, std::wstring menuId, std::wstring menu
         // Mod Manager Menu Center
         menuCenter.append_attribute (L"type")      = L"Center";
         menuCenter.append_attribute (L"padding-x") = L"23";
-        for (std::wstring item : items) {
+        for (const std::wstring& item : items) {
             std::wstring itemLine = L"<root>" + item + L"</root>";
             if (pugi::xml_document menuItem; menuItem.load_string (itemLine.c_str ())) menuCenter.append_copy (menuItem.first_child ().first_child ());
             else LogMessage (LogLevel::ERROR, L"Failed to parse option line: " + item);
@@ -96,7 +97,7 @@ ReadXMLFileSwitcher (std::wstring &fileName) {
 }
 
 HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFileName) {
-    auto originalFileName = std::wstring (lFileName);
+    const auto originalFileName = std::wstring (lFileName);
     std::wstring fileName         = originalFileName;
     if (fileName.ends_with (L"DeviceInitialize.xml") || fileName.ends_with (L"DeviceInitialize_asia.xml")
         || fileName.ends_with (L"DeviceInitialize_china.xml")) {
@@ -106,11 +107,11 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                 LogMessage (LogLevel::ERROR, L"Loading DeviceInitialize structure failed! path: " + fileName);
                 moddedInitial = fileName;
             } else {
-                std::wstring modFileName
+                const std::wstring modFileName
                     = replace (replace (replace (fileName, L"lize_asia.xml", L"lize_mod.xml"), L"lize_china.xml", L"lize_mod.xml"), L"lize.xml",
                                L"lize_mod.xml");
-                auto dongleQuery = pugi::xpath_query (L"/root/menu[@id='TopMenu']/layout[@type='Center']/select-item[@id='DongleItem']");
-                pugi::xml_node dongleItem     = doc.select_node (dongleQuery).node ();
+                const auto dongleQuery = pugi::xpath_query (L"/root/menu[@id='TopMenu']/layout[@type='Center']/select-item[@id='DongleItem']");
+                const pugi::xml_node dongleItem     = doc.select_node (dongleQuery).node ();
                 pugi::xml_node talItem        = dongleItem.parent ().append_copy (dongleItem);
                 talItem.attribute (L"label").set_value (L"TAIKOARCADELOADER");
                 talItem.attribute (L"id").set_value (L"TaikoArcadeLoader");
@@ -130,10 +131,11 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
                     LogMessage (LogLevel::ERROR, L"Loading TestMode structure failed! path: " + fileName);
                     modded = fileName;
                 } else {
-                    std::wstring modFileName
+                    const std::wstring modFileName
                         = replace (replace (replace (fileName, L"Mode_asia.xml", L"Mode_mod.xml"), L"Mode_china.xml", L"Mode_mod.xml"), L"Mode.xml",
                                    L"Mode_mod.xml");
-                    if (!registeredItems.empty ()) { auto menuQuery
+                    if (!registeredItems.empty ()) {
+                        const auto menuQuery
                             = pugi::xpath_query (L"/root/menu[@id='TopMenu']/layout[@type='Center']/menu-item[@menu='GameOptionsMenu']");
                         pugi::xml_node menuItem                  = doc.select_node (menuQuery).node ();
                         menuItem                                 = menuItem.next_sibling ();
@@ -144,18 +146,18 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
 
                         pugi::xml_document modMenu;
                         std::vector<std::wstring> toInsertItems = {};
-                        for (RegisteredItem *item : registeredItems) {
+                        for (const RegisteredItem *item : registeredItems) {
                             toInsertItems.push_back (item->selectItem);
                             item->registerInit ();
                         }
                         CreateMenu (modMenu, L"ModManagerMenu", L"MOD MANAGER", toInsertItems, L"TopMenu");
-                        auto topMenuQuery = pugi::xpath_query (L"/root/menu[@id='TopMenu']");
-                        pugi::xml_node topMenu         = doc.select_node (topMenuQuery).node ();
+                        const auto topMenuQuery      = pugi::xpath_query (L"/root/menu[@id='TopMenu']");
+                        const pugi::xml_node topMenu         = doc.select_node (topMenuQuery).node ();
                         topMenu.parent ().insert_copy_after (modMenu.first_child (), topMenu);
                     }
 
                     if (!registeredModifies.empty ()) {
-                        for (RegisteredModify *modify : registeredModifies) { auto modifyQuery = pugi::xpath_query (modify->query.c_str ());
+                        for (const RegisteredModify *modify : registeredModifies) { auto modifyQuery = pugi::xpath_query (modify->query.c_str ());
                             try {
                                 if (pugi::xml_node modifyNode = doc.select_node (modifyQuery).node ()) {
                                     modify->nodeModify (modifyNode);
@@ -180,103 +182,98 @@ HOOK_DYNAMIC (void, TestModeSetMenuHook, u64 testModeLibrary, const wchar_t *lFi
 void
 CommonModify () {
     // Default off Close time
-    TestMode::RegisterModify (
+    RegisterModify (
         L"/root/menu[@id='CloseTimeSettingMenu']/layout[@type='Center']/select-item[@id='ScheduleTypeItem']",
-        [&] (const pugi::xml_node &node) { node.attribute (L"default").set_value (L"0"); }, [&] () {});
+        [&] (const pugi::xml_node &node) { node.attribute (L"default").set_value (L"0"); }, [&] {});
 }
 
 void
 LocalizationCHT () {
-    TestMode::RegisterModify (
+    RegisterModify (
         L"/root/menu[@id='TopMenu']/layout[@type='Center']/menu-item[@menu='ModManagerMenu']",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模組管理"); }, [] () {});
-    TestMode::RegisterModify (
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模組管理"); }, [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Header']/text-item",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模組管理"); }, [] () {});
-    TestMode::RegisterModify (
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模組管理"); }, [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModFreezeTimer']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"凍結計時");
             node.attribute (L"replace-text").set_value (L"0:關閉, 1:開啓");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo024']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"鬼滅之刃模式");
             node.attribute (L"replace-text").set_value (L"0:黙認, 1:啓用, 2:僅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo025']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"航海王模式");
             node.attribute (L"replace-text").set_value (L"0:黙認, 1:啓用, 2:僅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo026']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"ＡＩ粗品模式");
             node.attribute (L"replace-text").set_value (L"0:黙認, 1:啓用, 2:僅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeAprilFool001']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"青春之達人模式");
             node.attribute (L"replace-text").set_value (L"0:黙認, 1:啓用, 2:僅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/menu-item[@menu='TopMenu']",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"離開"); }, [] () {});
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"離開"); }, [] {});
 }
 
 void
 LocalizationCHS () {
-    TestMode::RegisterModify (
+    RegisterModify (
         L"/root/menu[@id='TopMenu']/layout[@type='Center']/menu-item[@menu='ModManagerMenu']",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模组管理"); }, [] () {});
-    TestMode::RegisterModify (
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模组管理"); }, [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Header']/text-item",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模组管理"); }, [] () {});
-    TestMode::RegisterModify (
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"模组管理"); }, [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModFreezeTimer']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"冻结计时");
             node.attribute (L"replace-text").set_value (L"0:禁用, 1:启用");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo024']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"鬼灭之刃模式");
             node.attribute (L"replace-text").set_value (L"0:默认, 1:启用, 2:仅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo025']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"航海王模式");
             node.attribute (L"replace-text").set_value (L"0:默认, 1:启用, 2:仅刷卡");
         },
-        [] () {});
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeCollabo026']",
         [&] (const pugi::xml_node &node) {
             node.attribute (L"label").set_value (L"ＡＩ粗品模式");
             node.attribute (L"replace-text").set_value (L"0:默认, 1:启用, 2:仅刷卡");
         },
-        [] () {});
-    // TestMode::RegisterModify(
-    //     L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/select-item[@id='ModModeAprilFool001']",
-    //     [&](pugi::xml_node &node) { node.attribute(L"label").set_value(L"青春之达人模式"); node.attribute(L"replace-text").set_value(L"0:默认,
-    //     1:启用, 2:仅刷卡"); }, [](){}
-    // );
-    TestMode::RegisterModify (
+        [] {});
+    RegisterModify (
         L"/root/menu[@id='ModManagerMenu']/layout[@type='Center']/menu-item[@menu='TopMenu']",
-        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"离开"); }, [] () {});
+        [&] (const pugi::xml_node &node) { node.attribute (L"label").set_value (L"离开"); }, [] {});
 }
 
 void
@@ -309,8 +306,8 @@ Init () {
 
 void
 SetupAccessor (const u64 appAccessor, const RefTestModeMain refTestMode) {
-    patches::TestMode::appAccessor = appAccessor;
-    patches::TestMode::refTestMode = refTestMode;
+    TestMode::appAccessor = appAccessor;
+    TestMode::refTestMode = refTestMode;
 }
 
 int

@@ -142,8 +142,8 @@ Init () {
 
         if (const auto graphics = openConfigSection (config_ptr.get (), "graphics")) {
             if (const auto res = openConfigSection (graphics, "res")) {
-                xRes = (i32)readConfigInt (res, "x", xRes);
-                yRes = (i32)readConfigInt (res, "y", yRes);
+                xRes = static_cast<i32> (readConfigInt (res, "x", xRes));
+                yRes = static_cast<i32> (readConfigInt (res, "y", yRes));
             }
             vsync = readConfigBool (graphics, "vsync", vsync);
         }
@@ -181,11 +181,11 @@ Init () {
             WRITE_MEMORY (ASLR (address) + 2, i32, datatableBufferSize);
 
         auto bufferBase = MODULE_HANDLE - 0x03000000;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer1);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer1);
         bufferBase += datatableBufferSize;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer2);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer2);
         bufferBase += datatableBufferSize;
-        AllocateStaticBufferNear ((void *)bufferBase, datatableBufferSize, &datatableBuffer3);
+        AllocateStaticBufferNear (bufferBase, datatableBufferSize, &datatableBuffer3);
 
         ReplaceLeaBufferAddress (datatableBuffer1Addresses, datatableBuffer1.data ());
         ReplaceLeaBufferAddress (datatableBuffer2Addresses, datatableBuffer2.data ());
