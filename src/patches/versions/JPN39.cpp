@@ -4,6 +4,15 @@
 #include <map>
 #include "config.h"
 
+extern u64 song_data_size;
+extern void *song_data;
+
+#define RDX_MOV 0x48, 0xBA
+#define R8_MOV  0x49, 0xB8
+#define GENERATE_MOV(instruction, location)                                                                                 \
+    instruction, (u8)(u64)(location), (u8)((u64)(location) >> 8), (u8)((u64)(location) >> 16), (u8)((u64)(location) >> 24), \
+        (u8)((u64)(location) >> 32), (u8)((u64)(location) >> 40), (u8)((u64)(location) >> 48), (u8)((u64)(location) >> 56)
+
 static const i32& xRes = Config::ConfigManager::instance ().getGraphicsConfig ().res.x;
 static const i32& yRes = Config::ConfigManager::instance ().getGraphicsConfig ().res.y;
 static bool vsync = Config::ConfigManager::instance ().getGraphicsConfig ().vsync;
@@ -472,6 +481,82 @@ Init () {
         WRITE_MEMORY (ASLR (0x140CC06F0), char, ".\\Garmc\\ErrorLogData\\GarmcErrorLogData.dat");
         WRITE_MEMORY (ASLR (0x140CC0580), char, ".\\Garmc\\ErrorLogData\\GarmcOErrorLogData.dat");
         WRITE_MEMORY (ASLR (0x140CC05B0), char, ".\\Garmc\\ErrorLogData\\GarmcOErrorLogData.dat");
+
+        {
+            // Song_id limit (1599)
+            WRITE_MEMORY (ASLR (0x1402e0d5d), i32, 9000); // EBP,0x63f
+            WRITE_MEMORY (ASLR (0x1403f1a86), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f1e14), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f1f24), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f2044), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f2184), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f33f4), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403fd936), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403fda00), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403fdb34), i32, 9000); // EDI,0x63f
+            WRITE_MEMORY (ASLR (0x1403f1b46), i32, 9000); // ESI,0x63f
+            WRITE_MEMORY (ASLR (0x1404050eb), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x1404051b8), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x140405285), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x1404053ab), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x140405478), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x140405545), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x14040564a), i32, 9000); // RBX,0x63f
+            WRITE_MEMORY (ASLR (0x1403f3c3a), i32, 9000); // dword ptr [RBX],0x63f
+
+            // Song_id limit (1600)
+            WRITE_MEMORY (ASLR (0x1402e1ab6), i32, 9000); // EAX,0x640
+            WRITE_MEMORY (ASLR (0x1403f452f), i32, 9000); // EBP,0x640
+            WRITE_MEMORY (ASLR (0x1403f2365), i32, 9000); // EBP,0x640
+            WRITE_MEMORY (ASLR (0x1403f4609), i32, 9000); // EBX,0x640
+            WRITE_MEMORY (ASLR (0x1403f4c02), i32, 9000); // EBX,0x640
+            WRITE_MEMORY (ASLR (0x140454c6c), i32, 9000); // EBX,0x640
+            WRITE_MEMORY (ASLR (0x1403fdc03), i32, 9000); // EDI,0x640
+            WRITE_MEMORY (ASLR (0x14014e0ad), i32, 9000); // ESI,0x640
+            WRITE_MEMORY (ASLR (0x1403f24ec), i32, 9000); // ESI,0x640
+            WRITE_MEMORY (ASLR (0x1403f30a1), i32, 9000); // ESI,0x640
+            WRITE_MEMORY (ASLR (0x14043e6b2), i32, 9000); // ESI,0x640
+            WRITE_MEMORY (ASLR (0x14043e6fe), i32, 9000); // ESI,0x640
+            WRITE_MEMORY (ASLR (0x14015935d), i32, 9000); // param_1,0x640
+            WRITE_MEMORY (ASLR (0x14015ccd1), i32, 9000); // param_1,0x640
+            WRITE_MEMORY (ASLR (0x14015cd01), i32, 9000); // param_1,0x640
+            WRITE_MEMORY (ASLR (0x1403e0fb5), i32, 9000); // param_1,0x640
+            WRITE_MEMORY (ASLR (0x1403e139f), i32, 9000); // param_1,0x640
+            WRITE_MEMORY (ASLR (0x1403f4686), i32, 9000); // param_3,0x640
+            WRITE_MEMORY (ASLR (0x1403f46d7), i32, 9000); // param_3,0x640
+            WRITE_MEMORY (ASLR (0x1403f4cc6), i32, 9000); // param_3,0x640
+            WRITE_MEMORY (ASLR (0x1404056ee), i32, 9000); // param_3,0x640
+            WRITE_MEMORY (ASLR (0x1402e1c66), i32, 9000); // R14D,0x640
+            WRITE_MEMORY (ASLR (0x1402e22b6), i32, 9000); // R14D,0x640
+            WRITE_MEMORY (ASLR (0x1403f29fb), i32, 9000); // R14D,0x640
+            WRITE_MEMORY (ASLR (0x1403f2a91), i32, 9000); // R14D,0x640
+            // WRITE_MEMORY (ASLR (0x14003cd30), i32, 9000); // R15D,0x640
+
+            song_data = malloc (song_data_size);
+            memset (song_data, 0, song_data_size);
+
+            // Ranks, Crowns, etc
+            WRITE_MEMORY (ASLR (0x1403F1A9B), u8, GENERATE_MOV (R8_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403FDA16), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403FD94C), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403FDB4A), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403F3407), u8, GENERATE_MOV (R8_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403F2062), u8, GENERATE_MOV (R8_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x14040555C), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1404051CF), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x140405102), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x14040529C), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1404051CF), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x140405102), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x14040548F), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x140405661), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1404053C2), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_NOP (ASLR (0x14040566B), 0x05);
+            WRITE_MEMORY (ASLR (0x1403F1B75), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403F1E2B), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403F1F6C), u8, GENERATE_MOV (RDX_MOV, song_data));
+            WRITE_MEMORY (ASLR (0x1403F21CC), u8, GENERATE_MOV (RDX_MOV, song_data));
+        }
 
         // Move various files to current directory
         WRITE_MEMORY (amHandle + 0x15252, u8, 0xEB); // CreditLogPathA
