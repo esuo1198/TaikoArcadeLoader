@@ -201,7 +201,7 @@ set(DEF_FILE "${CMAKE_CURRENT_SOURCE_DIR}/exports.def")
 
 if (MSVC)
     # Add the .def file to the target properties
-    set_target_properties(bnusio PROPERTIES LINK_FLAGS "/DEF:${DEF_FILE}")
+    set_target_properties(bnusio PROPERTIES LINK_FLAGS "/DEF:\"${DEF_FILE}\"")
 endif()
 
 add_custom_command(
