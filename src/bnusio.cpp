@@ -411,6 +411,7 @@ void
 Close () {
     if (autoIme) ActivateKeyboardLayout (currentLayout, KLF_SETFORPROCESS);
     patches::Plugins::Exit ();
+    patches::LuaJITMem::Exit ();
     CleanupLogger ();
 }
 } // namespace bnusio

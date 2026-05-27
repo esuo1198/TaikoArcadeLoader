@@ -34,6 +34,7 @@ version = "auto"            # Patch version
                             # | - JPN39: For use with Taiko JPN 39.06
                             # | - CHN00: For use with Taiko CHN 00.32
 unlock_songs = true         # not active for JPN39 (see TestMode)
+luajit_reserve_mem = 512    # in MB. reserve low address memory for LuaJIT for mitigating crashing issue, use 0 for not reserving
 
 [patches.chn00]             # These patches are only available for version CHN00
 fix_language = false        # Sync test mode language to attract etc

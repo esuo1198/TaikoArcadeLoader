@@ -150,6 +150,7 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
         LogMessage (LogLevel::INFO, "Loading config...");
 
         std::string version                    = "auto";
+        size_t luajitReserveSize               = 512;
         const std::filesystem::path configPath = std::filesystem::current_path () / "config.toml";
         const std::unique_ptr<toml_table_t, void (*) (toml_table_t *)> config_ptr (openConfig (configPath), toml_free);
         if (config_ptr) {
@@ -171,7 +172,10 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
                 std::strcat (placeId, countryCode.c_str ());
                 std::strcat (placeId, "0FF0");
             }
-            if (const auto patches = openConfigSection (config, "patches")) version = readConfigString (patches, "version", version);
+            if (const auto patches = openConfigSection (config, "patches")) {
+                version           = readConfigString (patches, "version", version);
+                luajitReserveSize = readConfigInt (patches, "luajit_reserve_mem", luajitReserveSize);
+            }
             if (const auto emulation = openConfigSection (config, "emulation")) {
                 emulateUsio        = readConfigBool (emulation, "usio", emulateUsio);
                 emulateCardReader  = readConfigBool (emulation, "card_reader", emulateCardReader);
@@ -245,6 +249,7 @@ DllMain (HMODULE module, const DWORD reason, LPVOID reserved) {
         INSTALL_HOOK (ws2_getaddrinfo);
 
         bnusio::Init ();
+        patches::LuaJITMem::Init (luajitReserveSize);
 
         switch (gameVersion) {
         case GameVersion::UNKNOWN: break;

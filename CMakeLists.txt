@@ -138,6 +138,7 @@ set(SOURCES
     # src/patches/qr.cpp
     src/patches/layeredfs.cpp
     src/patches/testmode.cpp
+    src/patches/luajit_mem_reserve.cpp
     src/patches/versions/JPN00.cpp
     src/patches/versions/JPN08.cpp
     src/patches/versions/JPN39.cpp
