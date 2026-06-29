@@ -12,10 +12,45 @@ It currently supports the following versions:
 
 ## Setup
 
-Copy the extracted contents of `dist.zip` to the same directory as Taiko.exe  
-If your game hangs on a black screen at launch for more than a minute, Start Taiko.exe as Administrator.
+First of all, you may rename your game's ``bnusio.dll`` into ``bnusio_original.dll`` if you don't want TaikoArcadeLoader to emulate it.
 
-### config.toml
+Then, if you downloaded a pre-made ``dist.zip`` file:
+- Extract its contents into the same directory as ``Taiko.exe``
+If you compiled TaikoArcadeLoader yourself:
+- Copy the content of the ``dist`` directory into the same directory as ``Taiko.exe``
+
+If your game hangs on a black screen at launch for more than a minute, try to start Taiko.exe as Administrator.
+
+## Building Manually
+
+To compile TaikoArcadeLoader, you'll need at least:
+- [CMake](https://github.com/Kitware/CMake/releases/tag/v3.25.3) 3.25 <= version < 4.0
+- [MSVC](https://aka.ms/vs/17/release/vs_BuildTools.exe).
+
+Loading this project in CLion or VSCode with the CMake Tools addon should then allow you to build the project.  
+Do note that the ``.sln`` files created after you run the configure command CAN be opened using Visual Studio or Rider.  
+If you want to build yourself, here are some instructions on how to do this from a ``cmd`` prompt.  
+
+Clone this repository, open a ``cmd`` in its directory and run the following commands:
+
+```bash
+# Load the MSVC environment (Change this to your actual vcvarsall.bat path)
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+# Configure the build folder (this is only needed the first time)
+cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+
+# Build TaikoArcadeLoader
+cmake --build build --config Release --target bnusio
+```
+
+The compiled DLL of TaikoArcadeLoader (named ``bnusio.dll``) will be created in the `dist` folder.
+
+## Configuration
+
+### The ``config.toml`` file
+
+It contains various settings for you to adjust so the game works best on your device.
 
 ```toml
 [amauth]
@@ -96,11 +131,15 @@ log_to_file = false         # Log to file, set this to true to save the logs fro
                             # |Again, if you do not have a use for this (debugging mods or whatnot), turn it off.
 ```
 
-## TestMode options (JPN39 only)
 
-TaikoArcadeLoader offers several patches to select in TestMode  
 
-The follow options are available in "MOD MANAGER" menu:
+#### TestMode options (JPN39 only)
+
+In JPN39, TaikoArcadeLoader offers several patches to select in TestMode.
+
+TestMode can be entered at any time by pressing F1 (or another key if you've changed it) after the first loading screen.
+
+A new option "MOD MANAGER" will be added by TaikoArcadeLoader, which has the following options:
 
 * FIX LANGUAGE (sync test mode language to attract etc)
 * UNLOCK SONGS (show all of the songs)
@@ -116,25 +155,63 @@ Enhanced original option:
 * Louder volume (Speaker Volume is now up to 300%, **WARNING: May damage your speakers**)
 * Attract demo (Only available if FIX LANGUAGE is ON)
 
-## Building Manually
+### The ``keyconfig.toml`` file
 
-To compile TaikoArcadeLoader, you'll need to install [MSVC](https://aka.ms/vs/17/release/vs_BuildTools.exe).
+It contains the keybindings configuration for each of the game's inputs.
 
-Loading this project in CLion or VSCode with the cmake tools addon should then allow you to build the project.  
-Do note that the .sln files created after you run the configure command CAN be opened using Visual Studio or Rider.  
-If you want to build yourself, here are some instructions on how to do this from a cmd shell.  
+The available key names are documented at the bottom of the file.
 
-Clone this repository, open *cmd* and run the following commands:
+```toml
+EXIT = ["ESCAPE"]
 
-```bash
-# Load the MSVC environment (Change this to your actual vcvarsall.bat path)
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+TEST = ["F1"]
+SERVICE = ["F2"]
+DEBUG_UP = ["UPARROW"]
+DEBUG_DOWN = ["DOWNARROW"]
+DEBUG_ENTER = ["ENTER"]
 
-# Configure the build folder (this is only needed the first time)
-cmake -B build -S . -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+COIN_ADD = ["ENTER", "SDL_START"]
+CARD_INSERT_1 = ["P"]
+CARD_INSERT_2 = []
+QR_DATA_READ = ["Q"]
+QR_IMAGE_READ = ["W"]
 
-# Build TaikoArcadeLoader
-cmake --build build --config Release --target bnusio
+P1_LEFT_BLUE = ["D", "SDL_LTRIGGER"]
+P1_LEFT_RED = ["F", "SDL_LSTICK_PRESS"]
+P1_RIGHT_RED = ["J", "SDL_RSTICK_PRESS"]
+P1_RIGHT_BLUE = ["K", "SDL_RTRIGGER"]
+P2_LEFT_BLUE = ["Z"]
+P2_LEFT_RED = ["X"]
+P2_RIGHT_RED = ["C"]
+P2_RIGHT_BLUE = ["V"]
+
+# ESCAPE F1 through F12 
+# ` 1 through 0 -= BACKSPACE ^ YEN
+# TAB QWERTYUIOP [ ] BACKSLASH @
+# CAPS_LOCK ASDFGHJKL ;' ENTER :
+# SHIFT ZXCVBNM , . SLASH
+# CONTROL L_WIN ALT SPACE R_WIN MENU
+# SCROLL_LOCK PAUSE INSERT DELETE HOME END PAGE_UP PAGE_DOWN
+# UPARROW LEFTARROW DOWNARROW RIGHTARROW
+# NUM0 through NUM9 NUM_LOCK DIVIDE MULTIPLY SUBTRACT ADD DECIMAL
+# SCROLL_UP SCROLL_DOWN
+# SDL_A SDL_B SDL_X SDL_Y
+# SDL_BACK SDL_GUIDE SDL_START
+# SDL_LSHOULDER SDL_LTRIGGER SDL_RSHOULDER SDL_RTRIGGER
+# SDL_DPAD_UP SDL_DPAD_LEFT SDL_DPAD_DOWN SDL_DPAD_RIGHT
+# SDL_MISC SDL_PADDLE1 SDL_PADDLE2 SDL_PADDLE3 SDL_PADDLE4 SDL_TOUCHPAD
+# SDL_LSTICK_UP SDL_LSTICK_LEFT SDL_LSTICK_DOWN SDL_LSTICK_RIGHT SDL_LSTICK_PRESS
+# SDL_RSTICK_UP SDL_RSTICK_LEFT SDL_RSTICK_DOWN SDL_RSTICK_RIGHT SDL_RSTICK_PRESS
 ```
 
-The compiled dll of TaikoArcadeLoader will be created in the `dist` folder.
+### The ``gamecontrollerdb.txt``
+
+This file lists bindings between many controllers' numbered keys and their named key equivalent.
+
+## Finding access codes
+
+The default configuration lets you connect the game to a local server (for example, a [TaikoLocalServer](https://github.com/asesidaa/TaikoLocalServer) instance) hosted on the same computer.
+
+By default, TaikoArcadeLoader will create a ``card.ini`` file on its first launch containing two access code / chip ID pairs.
+
+Those are the access codes to be used to register accounts in your local server for play data respectively related to the emulated cards associated to pressing the ``CARD_INSERT_1`` and ``CARD_INSERT_2`` keybindings in-game.
