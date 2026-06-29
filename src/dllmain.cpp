@@ -130,12 +130,19 @@ CreateCard () {
     srand (static_cast<unsigned int> (time (nullptr)));
 
     std::generate_n (buf, 20, [&] { return hexCharacterTable[rand () % 10]; });
+    buf[20] = '\0';
     WritePrivateProfileStringA ("card", "accessCode1", buf, ".\\card.ini");
+    
     std::generate_n (buf, 32, [&] { return hexCharacterTable[rand () % 16]; });
+    buf[32] = '\0';
     WritePrivateProfileStringA ("card", "chipId1", buf, ".\\card.ini");
+
     std::generate_n (buf, 20, [&] { return hexCharacterTable[rand () % 10]; });
+    buf[20] = '\0';
     WritePrivateProfileStringA ("card", "accessCode2", buf, ".\\card.ini");
+
     std::generate_n (buf, 32, [&] { return hexCharacterTable[rand () % 16]; });
+    buf[32] = '\0';
     WritePrivateProfileStringA ("card", "chipId2", buf, ".\\card.ini");
 }
 
